@@ -14,16 +14,146 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assignment_submissions: {
+        Row: {
+          assignment_id: string
+          audio_url: string
+          id: string
+          reviewed_at: string | null
+          status: string
+          student_id: string
+          submitted_at: string
+          teacher_feedback: string | null
+        }
+        Insert: {
+          assignment_id: string
+          audio_url: string
+          id?: string
+          reviewed_at?: string | null
+          status?: string
+          student_id: string
+          submitted_at?: string
+          teacher_feedback?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          audio_url?: string
+          id?: string
+          reviewed_at?: string | null
+          status?: string
+          student_id?: string
+          submitted_at?: string
+          teacher_feedback?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_submissions_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "quran_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      quran_assignments: {
+        Row: {
+          ayah_from: number
+          ayah_to: number
+          created_at: string
+          description: string | null
+          id: string
+          surah_name: string
+          surah_name_ar: string
+          surah_number: number
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          ayah_from?: number
+          ayah_to: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          surah_name: string
+          surah_name_ar?: string
+          surah_number: number
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          ayah_from?: number
+          ayah_to?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          surah_name?: string
+          surah_name_ar?: string
+          surah_number?: number
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "teacher" | "student"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +280,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["teacher", "student"],
+    },
   },
 } as const
