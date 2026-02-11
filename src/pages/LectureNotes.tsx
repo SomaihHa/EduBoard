@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { AppLayout } from "@/components/AppLayout";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { supabase } from "@/integrations/supabase/client";
-import { Mic, MicOff, FileText, Loader2, BookOpen, Lightbulb, HelpCircle, Play, Pause, RotateCcw } from "lucide-react";
+import { Mic, MicOff, FileText, Loader2, BookOpen, Lightbulb, HelpCircle, Play, Pause, RotateCcw, Volume2, Square } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface LectureSection {
@@ -30,6 +30,43 @@ const LectureNotes = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<LectureAnalysis | null>(null);
   const [manualText, setManualText] = useState("");
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => { window.speechSynthesis.cancel(); };
+  }, []);
+
+  const getFullNotesText = useCallback(() => {
+    if (!analysis) return "";
+    const parts: string[] = [];
+    if (analysis.title) parts.push(analysis.title);
+    if (analysis.summary) parts.push(analysis.summary);
+    analysis.sections?.forEach(s => parts.push(`${s.heading}. ${s.content}`));
+    analysis.keyTerms?.forEach(kt => parts.push(`${kt.term}: ${kt.definition}`));
+    analysis.questionsAndAnswers?.forEach(qa => parts.push(`${qa.question} ${qa.answer}`));
+    analysis.highlights?.forEach(h => parts.push(h));
+    return parts.join(". ");
+  }, [analysis]);
+
+  const handleReadAloud = () => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    const text = getFullNotesText();
+    if (!text) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = isAr ? "ar-SA" : "en-US";
+    utterance.rate = 0.9;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    utteranceRef.current = utterance;
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
 
   const handleStartRecording = async () => {
     await startRecording();
@@ -186,10 +223,25 @@ const LectureNotes = () => {
 
           {analysis && (
             <>
-              {/* Summary */}
+              {/* Summary + Read Aloud */}
               <div className="bg-card rounded-xl shadow-card p-5">
-                <h2 className="text-lg font-bold text-card-foreground mb-1">{analysis.title}</h2>
-                <p className="text-sm text-muted-foreground">{analysis.summary}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h2 className="text-lg font-bold text-card-foreground mb-1">{analysis.title}</h2>
+                    <p className="text-sm text-muted-foreground">{analysis.summary}</p>
+                  </div>
+                  <button
+                    onClick={handleReadAloud}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      isSpeaking
+                        ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                        : "bg-primary/10 text-primary hover:bg-primary/20"
+                    }`}
+                  >
+                    {isSpeaking ? <Square className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                    {isSpeaking ? (isAr ? "إيقاف" : "Stop") : (isAr ? "اقرأ بصوت عالٍ" : "Read Aloud")}
+                  </button>
+                </div>
               </div>
 
               {/* Sections */}
