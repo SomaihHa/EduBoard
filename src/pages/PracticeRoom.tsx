@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { supabase } from "@/integrations/supabase/client";
-import { Mic, MicOff, Play, Pause, Square, RotateCcw, ChevronRight, ChevronDown, Volume2, Loader2, User } from "lucide-react";
+import { Mic, MicOff, Play, Pause, Square, RotateCcw, ChevronRight, ChevronDown, Volume2, Loader2, User, X, Pin, PinOff, Trash2, Clock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 // Available Qurra (reciters) with their CDN identifiers
@@ -72,6 +72,15 @@ interface TajweedResult {
   improvementTip: string;
 }
 
+interface SavedPractice {
+  id: string;
+  surahName: string;
+  surahNameAr: string;
+  result: TajweedResult;
+  timestamp: Date;
+  pinned: boolean;
+}
+
 const PracticeRoom = () => {
   const { language } = useAppContext();
   const isAr = language === "ar";
@@ -79,7 +88,9 @@ const PracticeRoom = () => {
   const [tajweedResult, setTajweedResult] = useState<TajweedResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Qari state
+  // Saved practice history
+  const [savedPractices, setSavedPractices] = useState<SavedPractice[]>([]);
+
   const [selectedQari, setSelectedQari] = useState(0);
   const [qariDropdownOpen, setQariDropdownOpen] = useState(false);
   const [isPlayingQari, setIsPlayingQari] = useState(false);
@@ -208,6 +219,42 @@ const PracticeRoom = () => {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  // Save current result to history for reference
+  const saveToHistory = () => {
+    if (!tajweedResult) return;
+    const practice: SavedPractice = {
+      id: Date.now().toString(),
+      surahName: surahs[selectedSurah].name,
+      surahNameAr: surahs[selectedSurah].nameAr,
+      result: tajweedResult,
+      timestamp: new Date(),
+      pinned: false,
+    };
+    setSavedPractices((prev) => [practice, ...prev]);
+    setTajweedResult(null);
+    toast({ title: isAr ? "تم الحفظ" : "Saved", description: isAr ? "تم حفظ النتيجة للمرجع" : "Result saved for reference" });
+  };
+
+  // Dismiss current result without saving
+  const dismissResult = () => {
+    setTajweedResult(null);
+  };
+
+  // Toggle pin on a saved practice
+  const togglePin = (id: string) => {
+    setSavedPractices((prev) => prev.map((p) => p.id === id ? { ...p, pinned: !p.pinned } : p));
+  };
+
+  // Remove a saved practice
+  const removeSaved = (id: string) => {
+    setSavedPractices((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  // Clear all non-pinned saved practices
+  const clearUnpinned = () => {
+    setSavedPractices((prev) => prev.filter((p) => p.pinned));
   };
 
   const handleReset = () => {
@@ -421,48 +468,152 @@ const PracticeRoom = () => {
 
         {/* Feedback panel */}
         <div className="space-y-4">
+          {/* Current result */}
           <div className="bg-card rounded-xl shadow-card p-5 text-center">
             <p className="text-sm text-muted-foreground mb-2">{isAr ? "الدقة الحالية" : "Current Accuracy"}</p>
             <p className="text-5xl font-bold text-gradient-primary">
               {tajweedResult ? `${tajweedResult.accuracyScore}%` : "—"}
             </p>
             {tajweedResult?.feedback && <p className="text-xs text-success mt-2">{tajweedResult.feedback}</p>}
-          </div>
 
-          <div className="bg-card rounded-xl shadow-card p-5">
-            <h3 className="font-semibold text-card-foreground mb-3 text-sm">{isAr ? "أحكام التجويد" : "Tajweed Rules"}</h3>
-            {tajweedResult?.tajweedRules ? (
-              <div className="space-y-2">
-                {tajweedResult.tajweedRules.map((t, i) => (
-                  <div key={i} className="flex items-center justify-between py-1.5">
-                    <span className="text-sm text-card-foreground">{t.rule}</span>
-                    <span>{t.status === "correct" ? "✅" : t.status === "warning" ? "⚠️" : "❌"}</span>
-                  </div>
-                ))}
+            {/* Save / Dismiss buttons */}
+            {tajweedResult && (
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <button
+                  onClick={saveToHistory}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  <Pin className="w-3.5 h-3.5" />
+                  {isAr ? "حفظ للمرجع" : "Keep for Reference"}
+                </button>
+                <button
+                  onClick={dismissResult}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  {isAr ? "إزالة" : "Dismiss"}
+                </button>
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">{isAr ? "سجّل تلاوتك لرؤية التقييم" : "Record your recitation to see evaluation"}</p>
             )}
           </div>
 
-          {tajweedResult?.mistakes && tajweedResult.mistakes.length > 0 && (
-            <div className="bg-card rounded-xl shadow-card p-5">
-              <h3 className="font-semibold text-card-foreground mb-3 text-sm">{isAr ? "الأخطاء" : "Mistakes"}</h3>
-              <div className="space-y-2">
-                {tajweedResult.mistakes.map((m, i) => (
-                  <div key={i} className="bg-destructive/5 rounded-lg p-2">
-                    <p className="text-sm font-medium text-card-foreground font-arabic" dir="rtl">{m.word}</p>
-                    <p className="text-xs text-muted-foreground">{m.issue}</p>
-                    <p className="text-xs text-success">{m.correction}</p>
-                  </div>
-                ))}
+          {/* Current Tajweed details */}
+          {tajweedResult && (
+            <>
+              <div className="bg-card rounded-xl shadow-card p-5">
+                <h3 className="font-semibold text-card-foreground mb-3 text-sm">{isAr ? "أحكام التجويد" : "Tajweed Rules"}</h3>
+                <div className="space-y-2">
+                  {tajweedResult.tajweedRules?.map((t, i) => (
+                    <div key={i} className="flex items-center justify-between py-1.5">
+                      <span className="text-sm text-card-foreground">{t.rule}</span>
+                      <span>{t.status === "correct" ? "✅" : t.status === "warning" ? "⚠️" : "❌"}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {tajweedResult.mistakes && tajweedResult.mistakes.length > 0 && (
+                <div className="bg-card rounded-xl shadow-card p-5">
+                  <h3 className="font-semibold text-card-foreground mb-3 text-sm">{isAr ? "الأخطاء" : "Mistakes"}</h3>
+                  <div className="space-y-2">
+                    {tajweedResult.mistakes.map((m, i) => (
+                      <div key={i} className="bg-destructive/5 rounded-lg p-2">
+                        <p className="text-sm font-medium text-card-foreground font-arabic" dir="rtl">{m.word}</p>
+                        <p className="text-xs text-muted-foreground">{m.issue}</p>
+                        <p className="text-xs text-success">{m.correction}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {tajweedResult.improvementTip && (
+                <div className="bg-mint rounded-xl p-4">
+                  <p className="text-sm font-medium text-foreground">💡 {tajweedResult.improvementTip}</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* No current result prompt */}
+          {!tajweedResult && savedPractices.length === 0 && (
+            <div className="bg-card rounded-xl shadow-card p-5">
+              <h3 className="font-semibold text-card-foreground mb-3 text-sm">{isAr ? "أحكام التجويد" : "Tajweed Rules"}</h3>
+              <p className="text-xs text-muted-foreground">{isAr ? "سجّل تلاوتك لرؤية التقييم" : "Record your recitation to see evaluation"}</p>
             </div>
           )}
 
-          {tajweedResult?.improvementTip && (
-            <div className="bg-mint rounded-xl p-4">
-              <p className="text-sm font-medium text-foreground">💡 {tajweedResult.improvementTip}</p>
+          {/* Saved Practice History */}
+          {savedPractices.length > 0 && (
+            <div className="bg-card rounded-xl shadow-card p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-card-foreground text-sm flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-primary" />
+                  {isAr ? "السجل المحفوظ" : "Saved History"}
+                  <span className="text-xs font-normal text-muted-foreground">({savedPractices.length})</span>
+                </h3>
+                {savedPractices.some((p) => !p.pinned) && (
+                  <button
+                    onClick={clearUnpinned}
+                    className="text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    {isAr ? "مسح غير المثبتة" : "Clear unpinned"}
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {savedPractices
+                  .sort((a, b) => (a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1))
+                  .map((p) => (
+                  <div
+                    key={p.id}
+                    className={`rounded-lg p-3 transition-all ${
+                      p.pinned ? "bg-primary/5 border border-primary/20" : "bg-muted/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div>
+                        <span className="text-sm font-semibold text-card-foreground">
+                          {isAr ? p.surahNameAr : p.surahName}
+                        </span>
+                        <span className={`ml-2 rtl:mr-2 rtl:ml-0 text-xs font-bold px-2 py-0.5 rounded-full ${
+                          p.result.accuracyScore >= 90 ? "bg-mint text-success" :
+                          p.result.accuracyScore >= 70 ? "bg-sand text-accent-foreground" :
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          {p.result.accuracyScore}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => togglePin(p.id)}
+                          className={`p-1 rounded transition-colors ${
+                            p.pinned ? "text-primary hover:text-primary/70" : "text-muted-foreground hover:text-primary"
+                          }`}
+                          title={p.pinned ? (isAr ? "إلغاء التثبيت" : "Unpin") : (isAr ? "تثبيت" : "Pin")}
+                        >
+                          {p.pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                        </button>
+                        <button
+                          onClick={() => removeSaved(p.id)}
+                          className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                          title={isAr ? "حذف" : "Remove"}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      {p.timestamp.toLocaleString(isAr ? "ar" : "en", { dateStyle: "short", timeStyle: "short" })}
+                    </p>
+                    {p.result.feedback && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.result.feedback}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
