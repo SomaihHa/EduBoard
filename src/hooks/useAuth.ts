@@ -11,38 +11,45 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Set up auth listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        setLoading(false);
 
         if (session?.user) {
-          // Fetch role
-          const { data } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", session.user.id)
-            .single();
-          setRole((data?.role as AppRole) ?? "student");
+          // Fetch role in background — don't block redirect
+          setTimeout(async () => {
+            const { data } = await supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", session.user.id)
+              .single();
+            setRole((data?.role as AppRole) ?? "student");
+          }, 0);
         } else {
           setRole(null);
         }
-        setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Then check existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false);
+
       if (session?.user) {
-        const { data } = await supabase
+        supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id)
-          .single();
-        setRole((data?.role as AppRole) ?? "student");
+          .single()
+          .then(({ data }) => {
+            setRole((data?.role as AppRole) ?? "student");
+          });
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
