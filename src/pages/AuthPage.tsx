@@ -25,20 +25,23 @@ const AuthPage = () => {
     e.preventDefault();
     setLoading(true);
 
-    if (isLogin) {
-      const { error } = await signIn(email, password);
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      }
-    } else {
-      const { error } = await signUp(email, password, fullName, selectedRole);
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
+    try {
+      if (isLogin) {
+        const { error } = await signIn(email, password);
+        if (error) {
+          toast({ title: "Error", description: error.message, variant: "destructive" });
+        }
       } else {
-        toast({ title: "Success", description: "Account created! Signing you in..." });
+        const { error } = await signUp(email, password, fullName, selectedRole);
+        if (error) {
+          toast({ title: "Error", description: error.message, variant: "destructive" });
+        } else {
+          toast({ title: "Success", description: "Account created! Signing you in..." });
+        }
       }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
