@@ -1,9 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
 import {
   BookOpen, Home, Mic, Camera, PenTool, Headphones,
-  Trophy, Settings, Users, BarChart3, Globe, UserCircle, GraduationCap, LogOut, Bot, Presentation
+  Trophy, Settings, Users, BarChart3, Globe, UserCircle, GraduationCap, LogOut, Bot, Presentation, Moon, Sun
 } from "lucide-react";
 
 const studentNav = [
@@ -33,8 +34,24 @@ export const AppSidebar = () => {
   const { role, setRole, language, setLanguage } = useAppContext();
   const { signOut } = useAuth();
   const location = useLocation();
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
   const nav = role === "student" ? studentNav : teacherNav;
   const isAr = language === "ar";
+
+  const toggleDarkMode = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
+  };
+
+  useEffect(() => {
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark") {
+      document.documentElement.classList.add("dark");
+      setIsDark(true);
+    }
+  }, []);
 
   return (
     <aside className="fixed top-0 left-0 z-40 h-screen w-64 bg-gradient-sidebar backdrop-blur-xl flex flex-col rtl:left-auto rtl:right-0 border-r border-white/5">
@@ -78,6 +95,15 @@ export const AppSidebar = () => {
 
       {/* Bottom controls */}
       <div className="px-3 py-4 border-t border-sidebar-border space-y-2">
+        {/* Dark mode toggle */}
+        <button
+          onClick={toggleDarkMode}
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
+        >
+          {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          <span>{isAr ? (isDark ? "الوضع الفاتح" : "الوضع الداكن") : (isDark ? "Light Mode" : "Dark Mode")}</span>
+        </button>
+
         {/* Language toggle */}
         <button
           onClick={() => setLanguage(language === "en" ? "ar" : "en")}
@@ -86,8 +112,6 @@ export const AppSidebar = () => {
           <Globe className="w-5 h-5" />
           <span>{isAr ? "English" : "العربية"}</span>
         </button>
-
-        {/* Role toggle */}
         <button
           onClick={() => setRole(role === "student" ? "teacher" : "student")}
           className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
