@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import {
   BookOpen, Home, Mic, Camera, PenTool, Headphones,
-  Trophy, Settings, Users, BarChart3, Globe, UserCircle
+  Trophy, Settings, Users, BarChart3, Globe, UserCircle, GraduationCap
 } from "lucide-react";
 
 const studentNav = [
@@ -32,39 +32,39 @@ export const AppSidebar = () => {
   const isAr = language === "ar";
 
   return (
-    <aside className="fixed top-0 left-0 z-40 h-screen w-64 bg-gradient-sidebar flex flex-col rtl:left-auto rtl:right-0">
+    <aside className="fixed top-0 left-0 z-40 h-screen w-64 bg-gradient-sidebar backdrop-blur-xl flex flex-col rtl:left-auto rtl:right-0 border-r border-white/5">
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-sidebar-border">
+      <div className="px-6 py-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-primary-foreground" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25">
+            <GraduationCap className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-base font-bold text-sidebar-foreground">
-              {isAr ? "نور التعلم" : "NoorLearn"}
+            <h1 className="text-lg font-extrabold tracking-tight text-white">
+              EduFine
             </h1>
-            <p className="text-xs text-sidebar-foreground/60">
-              {isAr ? "منصة تعليمية ذكية" : "AI Education Platform"}
+            <p className="text-[11px] text-sidebar-foreground/50 font-medium uppercase tracking-widest">
+              {isAr ? "تعليم ذكي" : "Smart Learning"}
             </p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
         {nav.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  ? "bg-white/10 text-white shadow-sm backdrop-blur-sm"
+                  : "text-sidebar-foreground/60 hover:text-white hover:bg-white/5"
               }`}
             >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <item.icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? 'text-secondary' : ''}`} />
               <span>{isAr ? item.labelAr : item.label}</span>
             </Link>
           );
