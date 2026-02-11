@@ -1,10 +1,10 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { AppLayout } from "@/components/AppLayout";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { supabase } from "@/integrations/supabase/client";
-import { Mic, MicOff, Play, Pause, Square, RotateCcw, ChevronRight, ChevronDown, Volume2, Loader2, User, X, Pin, PinOff, Trash2, Clock } from "lucide-react";
+import { Mic, MicOff, Play, Pause, Square, RotateCcw, ChevronRight, ChevronDown, Volume2, Loader2, User, X, Pin, PinOff, Trash2, Clock, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 // Available Qurra (reciters) with their CDN identifiers
@@ -17,51 +17,129 @@ const qurraa = [
   { id: "ar.ahmedajamy", name: "Ahmed Al-Ajamy", nameAr: "أحمد العجمي" },
 ];
 
-// Surah numbers in the Quran for the API
-const surahs = [
-  { name: "Al-Fatiha", nameAr: "الفاتحة", verses: 7, difficulty: "Easy", number: 1 },
-  { name: "Al-Baqarah", nameAr: "البقرة", verses: 286, difficulty: "Hard", number: 2 },
-  { name: "Al-Ikhlas", nameAr: "الإخلاص", verses: 4, difficulty: "Easy", number: 112 },
-  { name: "Al-Falaq", nameAr: "الفلق", verses: 5, difficulty: "Easy", number: 113 },
-  { name: "An-Nas", nameAr: "الناس", verses: 6, difficulty: "Easy", number: 114 },
-  { name: "Ya-Sin", nameAr: "يس", verses: 83, difficulty: "Medium", number: 36 },
+// All 114 Surahs of the Quran
+const allSurahs = [
+  { number: 1, name: "Al-Fatiha", nameAr: "الفاتحة", verses: 7, type: "Meccan" },
+  { number: 2, name: "Al-Baqarah", nameAr: "البقرة", verses: 286, type: "Medinan" },
+  { number: 3, name: "Ali 'Imran", nameAr: "آل عمران", verses: 200, type: "Medinan" },
+  { number: 4, name: "An-Nisa", nameAr: "النساء", verses: 176, type: "Medinan" },
+  { number: 5, name: "Al-Ma'idah", nameAr: "المائدة", verses: 120, type: "Medinan" },
+  { number: 6, name: "Al-An'am", nameAr: "الأنعام", verses: 165, type: "Meccan" },
+  { number: 7, name: "Al-A'raf", nameAr: "الأعراف", verses: 206, type: "Meccan" },
+  { number: 8, name: "Al-Anfal", nameAr: "الأنفال", verses: 75, type: "Medinan" },
+  { number: 9, name: "At-Tawbah", nameAr: "التوبة", verses: 129, type: "Medinan" },
+  { number: 10, name: "Yunus", nameAr: "يونس", verses: 109, type: "Meccan" },
+  { number: 11, name: "Hud", nameAr: "هود", verses: 123, type: "Meccan" },
+  { number: 12, name: "Yusuf", nameAr: "يوسف", verses: 111, type: "Meccan" },
+  { number: 13, name: "Ar-Ra'd", nameAr: "الرعد", verses: 43, type: "Medinan" },
+  { number: 14, name: "Ibrahim", nameAr: "إبراهيم", verses: 52, type: "Meccan" },
+  { number: 15, name: "Al-Hijr", nameAr: "الحجر", verses: 99, type: "Meccan" },
+  { number: 16, name: "An-Nahl", nameAr: "النحل", verses: 128, type: "Meccan" },
+  { number: 17, name: "Al-Isra", nameAr: "الإسراء", verses: 111, type: "Meccan" },
+  { number: 18, name: "Al-Kahf", nameAr: "الكهف", verses: 110, type: "Meccan" },
+  { number: 19, name: "Maryam", nameAr: "مريم", verses: 98, type: "Meccan" },
+  { number: 20, name: "Taha", nameAr: "طه", verses: 135, type: "Meccan" },
+  { number: 21, name: "Al-Anbiya", nameAr: "الأنبياء", verses: 112, type: "Meccan" },
+  { number: 22, name: "Al-Hajj", nameAr: "الحج", verses: 78, type: "Medinan" },
+  { number: 23, name: "Al-Mu'minun", nameAr: "المؤمنون", verses: 118, type: "Meccan" },
+  { number: 24, name: "An-Nur", nameAr: "النور", verses: 64, type: "Medinan" },
+  { number: 25, name: "Al-Furqan", nameAr: "الفرقان", verses: 77, type: "Meccan" },
+  { number: 26, name: "Ash-Shu'ara", nameAr: "الشعراء", verses: 227, type: "Meccan" },
+  { number: 27, name: "An-Naml", nameAr: "النمل", verses: 93, type: "Meccan" },
+  { number: 28, name: "Al-Qasas", nameAr: "القصص", verses: 88, type: "Meccan" },
+  { number: 29, name: "Al-Ankabut", nameAr: "العنكبوت", verses: 69, type: "Meccan" },
+  { number: 30, name: "Ar-Rum", nameAr: "الروم", verses: 60, type: "Meccan" },
+  { number: 31, name: "Luqman", nameAr: "لقمان", verses: 34, type: "Meccan" },
+  { number: 32, name: "As-Sajdah", nameAr: "السجدة", verses: 30, type: "Meccan" },
+  { number: 33, name: "Al-Ahzab", nameAr: "الأحزاب", verses: 73, type: "Medinan" },
+  { number: 34, name: "Saba", nameAr: "سبأ", verses: 54, type: "Meccan" },
+  { number: 35, name: "Fatir", nameAr: "فاطر", verses: 45, type: "Meccan" },
+  { number: 36, name: "Ya-Sin", nameAr: "يس", verses: 83, type: "Meccan" },
+  { number: 37, name: "As-Saffat", nameAr: "الصافات", verses: 182, type: "Meccan" },
+  { number: 38, name: "Sad", nameAr: "ص", verses: 88, type: "Meccan" },
+  { number: 39, name: "Az-Zumar", nameAr: "الزمر", verses: 75, type: "Meccan" },
+  { number: 40, name: "Ghafir", nameAr: "غافر", verses: 85, type: "Meccan" },
+  { number: 41, name: "Fussilat", nameAr: "فصلت", verses: 54, type: "Meccan" },
+  { number: 42, name: "Ash-Shura", nameAr: "الشورى", verses: 53, type: "Meccan" },
+  { number: 43, name: "Az-Zukhruf", nameAr: "الزخرف", verses: 89, type: "Meccan" },
+  { number: 44, name: "Ad-Dukhan", nameAr: "الدخان", verses: 59, type: "Meccan" },
+  { number: 45, name: "Al-Jathiyah", nameAr: "الجاثية", verses: 37, type: "Meccan" },
+  { number: 46, name: "Al-Ahqaf", nameAr: "الأحقاف", verses: 35, type: "Meccan" },
+  { number: 47, name: "Muhammad", nameAr: "محمد", verses: 38, type: "Medinan" },
+  { number: 48, name: "Al-Fath", nameAr: "الفتح", verses: 29, type: "Medinan" },
+  { number: 49, name: "Al-Hujurat", nameAr: "الحجرات", verses: 18, type: "Medinan" },
+  { number: 50, name: "Qaf", nameAr: "ق", verses: 45, type: "Meccan" },
+  { number: 51, name: "Adh-Dhariyat", nameAr: "الذاريات", verses: 60, type: "Meccan" },
+  { number: 52, name: "At-Tur", nameAr: "الطور", verses: 49, type: "Meccan" },
+  { number: 53, name: "An-Najm", nameAr: "النجم", verses: 62, type: "Meccan" },
+  { number: 54, name: "Al-Qamar", nameAr: "القمر", verses: 55, type: "Meccan" },
+  { number: 55, name: "Ar-Rahman", nameAr: "الرحمن", verses: 78, type: "Medinan" },
+  { number: 56, name: "Al-Waqi'ah", nameAr: "الواقعة", verses: 96, type: "Meccan" },
+  { number: 57, name: "Al-Hadid", nameAr: "الحديد", verses: 29, type: "Medinan" },
+  { number: 58, name: "Al-Mujadila", nameAr: "المجادلة", verses: 22, type: "Medinan" },
+  { number: 59, name: "Al-Hashr", nameAr: "الحشر", verses: 24, type: "Medinan" },
+  { number: 60, name: "Al-Mumtahanah", nameAr: "الممتحنة", verses: 13, type: "Medinan" },
+  { number: 61, name: "As-Saf", nameAr: "الصف", verses: 14, type: "Medinan" },
+  { number: 62, name: "Al-Jumu'ah", nameAr: "الجمعة", verses: 11, type: "Medinan" },
+  { number: 63, name: "Al-Munafiqun", nameAr: "المنافقون", verses: 11, type: "Medinan" },
+  { number: 64, name: "At-Taghabun", nameAr: "التغابن", verses: 18, type: "Medinan" },
+  { number: 65, name: "At-Talaq", nameAr: "الطلاق", verses: 12, type: "Medinan" },
+  { number: 66, name: "At-Tahrim", nameAr: "التحريم", verses: 12, type: "Medinan" },
+  { number: 67, name: "Al-Mulk", nameAr: "الملك", verses: 30, type: "Meccan" },
+  { number: 68, name: "Al-Qalam", nameAr: "القلم", verses: 52, type: "Meccan" },
+  { number: 69, name: "Al-Haqqah", nameAr: "الحاقة", verses: 52, type: "Meccan" },
+  { number: 70, name: "Al-Ma'arij", nameAr: "المعارج", verses: 44, type: "Meccan" },
+  { number: 71, name: "Nuh", nameAr: "نوح", verses: 28, type: "Meccan" },
+  { number: 72, name: "Al-Jinn", nameAr: "الجن", verses: 28, type: "Meccan" },
+  { number: 73, name: "Al-Muzzammil", nameAr: "المزمل", verses: 20, type: "Meccan" },
+  { number: 74, name: "Al-Muddaththir", nameAr: "المدثر", verses: 56, type: "Meccan" },
+  { number: 75, name: "Al-Qiyamah", nameAr: "القيامة", verses: 40, type: "Meccan" },
+  { number: 76, name: "Al-Insan", nameAr: "الإنسان", verses: 31, type: "Medinan" },
+  { number: 77, name: "Al-Mursalat", nameAr: "المرسلات", verses: 50, type: "Meccan" },
+  { number: 78, name: "An-Naba", nameAr: "النبأ", verses: 40, type: "Meccan" },
+  { number: 79, name: "An-Nazi'at", nameAr: "النازعات", verses: 46, type: "Meccan" },
+  { number: 80, name: "Abasa", nameAr: "عبس", verses: 42, type: "Meccan" },
+  { number: 81, name: "At-Takwir", nameAr: "التكوير", verses: 29, type: "Meccan" },
+  { number: 82, name: "Al-Infitar", nameAr: "الانفطار", verses: 19, type: "Meccan" },
+  { number: 83, name: "Al-Mutaffifin", nameAr: "المطففين", verses: 36, type: "Meccan" },
+  { number: 84, name: "Al-Inshiqaq", nameAr: "الانشقاق", verses: 25, type: "Meccan" },
+  { number: 85, name: "Al-Buruj", nameAr: "البروج", verses: 22, type: "Meccan" },
+  { number: 86, name: "At-Tariq", nameAr: "الطارق", verses: 17, type: "Meccan" },
+  { number: 87, name: "Al-A'la", nameAr: "الأعلى", verses: 19, type: "Meccan" },
+  { number: 88, name: "Al-Ghashiyah", nameAr: "الغاشية", verses: 26, type: "Meccan" },
+  { number: 89, name: "Al-Fajr", nameAr: "الفجر", verses: 30, type: "Meccan" },
+  { number: 90, name: "Al-Balad", nameAr: "البلد", verses: 20, type: "Meccan" },
+  { number: 91, name: "Ash-Shams", nameAr: "الشمس", verses: 15, type: "Meccan" },
+  { number: 92, name: "Al-Layl", nameAr: "الليل", verses: 21, type: "Meccan" },
+  { number: 93, name: "Ad-Duha", nameAr: "الضحى", verses: 11, type: "Meccan" },
+  { number: 94, name: "Ash-Sharh", nameAr: "الشرح", verses: 8, type: "Meccan" },
+  { number: 95, name: "At-Tin", nameAr: "التين", verses: 8, type: "Meccan" },
+  { number: 96, name: "Al-Alaq", nameAr: "العلق", verses: 19, type: "Meccan" },
+  { number: 97, name: "Al-Qadr", nameAr: "القدر", verses: 5, type: "Meccan" },
+  { number: 98, name: "Al-Bayyinah", nameAr: "البينة", verses: 8, type: "Medinan" },
+  { number: 99, name: "Az-Zalzalah", nameAr: "الزلزلة", verses: 8, type: "Medinan" },
+  { number: 100, name: "Al-Adiyat", nameAr: "العاديات", verses: 11, type: "Meccan" },
+  { number: 101, name: "Al-Qari'ah", nameAr: "القارعة", verses: 11, type: "Meccan" },
+  { number: 102, name: "At-Takathur", nameAr: "التكاثر", verses: 8, type: "Meccan" },
+  { number: 103, name: "Al-Asr", nameAr: "العصر", verses: 3, type: "Meccan" },
+  { number: 104, name: "Al-Humazah", nameAr: "الهمزة", verses: 9, type: "Meccan" },
+  { number: 105, name: "Al-Fil", nameAr: "الفيل", verses: 5, type: "Meccan" },
+  { number: 106, name: "Quraysh", nameAr: "قريش", verses: 4, type: "Meccan" },
+  { number: 107, name: "Al-Ma'un", nameAr: "الماعون", verses: 7, type: "Meccan" },
+  { number: 108, name: "Al-Kawthar", nameAr: "الكوثر", verses: 3, type: "Meccan" },
+  { number: 109, name: "Al-Kafirun", nameAr: "الكافرون", verses: 6, type: "Meccan" },
+  { number: 110, name: "An-Nasr", nameAr: "النصر", verses: 3, type: "Medinan" },
+  { number: 111, name: "Al-Masad", nameAr: "المسد", verses: 5, type: "Meccan" },
+  { number: 112, name: "Al-Ikhlas", nameAr: "الإخلاص", verses: 4, type: "Meccan" },
+  { number: 113, name: "Al-Falaq", nameAr: "الفلق", verses: 5, type: "Meccan" },
+  { number: 114, name: "An-Nas", nameAr: "الناس", verses: 6, type: "Medinan" },
 ];
 
-const surahVerses: Record<number, { arabic: string; translation: string }[]> = {
-  0: [
-    { arabic: "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ", translation: "In the name of Allah, the Most Gracious, the Most Merciful" },
-    { arabic: "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ", translation: "Praise be to Allah, Lord of all the worlds" },
-    { arabic: "الرَّحْمَنِ الرَّحِيمِ", translation: "The Most Gracious, the Most Merciful" },
-    { arabic: "مَالِكِ يَوْمِ الدِّينِ", translation: "Master of the Day of Judgment" },
-    { arabic: "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ", translation: "You alone we worship, and You alone we ask for help" },
-    { arabic: "اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ", translation: "Guide us on the Straight Path" },
-    { arabic: "صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ", translation: "The path of those You have blessed, not of those who incurred wrath, nor of those who went astray" },
-  ],
-  2: [
-    { arabic: "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ", translation: "In the name of Allah, the Most Gracious, the Most Merciful" },
-    { arabic: "قُلْ هُوَ اللَّهُ أَحَدٌ", translation: "Say: He is Allah, the One" },
-    { arabic: "اللَّهُ الصَّمَدُ", translation: "Allah, the Eternal Refuge" },
-    { arabic: "لَمْ يَلِدْ وَلَمْ يُولَدْ", translation: "He neither begets nor is born" },
-    { arabic: "وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ", translation: "Nor is there to Him any equivalent" },
-  ],
-  3: [
-    { arabic: "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ", translation: "In the name of Allah, the Most Gracious, the Most Merciful" },
-    { arabic: "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ", translation: "Say: I seek refuge in the Lord of daybreak" },
-    { arabic: "مِن شَرِّ مَا خَلَقَ", translation: "From the evil of that which He created" },
-    { arabic: "وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ", translation: "And from the evil of darkness when it settles" },
-    { arabic: "وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ", translation: "And from the evil of the blowers in knots" },
-    { arabic: "وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ", translation: "And from the evil of an envier when he envies" },
-  ],
-};
-
-const surahStartAyah: Record<number, number> = {
-  1: 1, 2: 8, 36: 2596, 112: 6222, 113: 6226, 114: 6231,
-};
+// Cumulative ayah start numbers for audio CDN (absolute ayah numbering)
+const surahStartAyahs = [0,1,8,294,494,670,790,955,1161,1236,1365,1474,1597,1708,1751,1803,1902,2030,2141,2251,2349,2484,2596,2674,2792,2869,2946,3173,3266,3354,3423,3483,3517,3547,3620,3674,3719,3802,3984,4072,4147,4232,4286,4339,4428,4487,4524,4559,4597,4626,4644,4689,4749,4798,4860,4915,4993,5089,5118,5140,5164,5177,5191,5202,5213,5231,5243,5255,5285,5337,5389,5433,5461,5489,5509,5565,5605,5636,5686,5726,5772,5814,5843,5862,5898,5923,5945,5962,5981,6007,6037,6057,6072,6093,6104,6112,6120,6139,6144,6152,6160,6171,6182,6190,6193,6202,6207,6211,6218,6221,6227,6230,6233,6237,6241,6247];
 
 const getAbsoluteAyahNumber = (surahNum: number, ayahNum: number): number => {
-  const start = surahStartAyah[surahNum];
-  if (!start) return 1;
-  return start + ayahNum - 1;
+  return (surahStartAyahs[surahNum] || 1) + ayahNum - 1;
 };
 
 interface TajweedResult {
@@ -84,9 +162,14 @@ interface SavedPractice {
 const PracticeRoom = () => {
   const { language } = useAppContext();
   const isAr = language === "ar";
-  const [selectedSurah, setSelectedSurah] = useState(0);
+  const [selectedSurah, setSelectedSurah] = useState(0); // index into allSurahs
   const [tajweedResult, setTajweedResult] = useState<TajweedResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [surahSearch, setSurahSearch] = useState("");
+
+  // Dynamically fetched verses
+  const [verses, setVerses] = useState<{ arabic: string; translation: string }[]>([]);
+  const [isLoadingVerses, setIsLoadingVerses] = useState(false);
 
   // Saved practice history
   const [savedPractices, setSavedPractices] = useState<SavedPractice[]>([]);
@@ -103,15 +186,54 @@ const PracticeRoom = () => {
   const { isRecording, audioUrl, startRecording, stopRecording, resetRecording, error: recError } = useAudioRecorder();
   const { isListening, transcript, interimTranscript, startListening, stopListening, resetTranscript, isSupported, error: speechError } = useSpeechRecognition();
 
-  const verses = surahVerses[selectedSurah] || surahVerses[0];
+  const currentSurah = allSurahs[selectedSurah];
   const fullSurahText = verses.map((v) => v.arabic).join(" ");
 
+  // Fetch verses from Al-Quran Cloud API when surah changes
+  useEffect(() => {
+    const fetchVerses = async () => {
+      setIsLoadingVerses(true);
+      setVerses([]);
+      try {
+        const [arRes, enRes] = await Promise.all([
+          fetch(`https://api.alquran.cloud/v1/surah/${currentSurah.number}/ar.alafasy`),
+          fetch(`https://api.alquran.cloud/v1/surah/${currentSurah.number}/en.asad`),
+        ]);
+        const arData = await arRes.json();
+        const enData = await enRes.json();
+
+        if (arData.status === "OK" && enData.status === "OK") {
+          const arAyahs = arData.data.ayahs;
+          const enAyahs = enData.data.ayahs;
+          const combined = arAyahs.map((a: any, i: number) => ({
+            arabic: a.text,
+            translation: enAyahs[i]?.text || "",
+          }));
+          setVerses(combined);
+        }
+      } catch (err) {
+        console.error("Failed to fetch surah:", err);
+        toast({ title: isAr ? "خطأ" : "Error", description: isAr ? "تعذّر تحميل الآيات" : "Could not load verses", variant: "destructive" });
+      } finally {
+        setIsLoadingVerses(false);
+      }
+    };
+    fetchVerses();
+  }, [selectedSurah, currentSurah.number, isAr]);
+
+  // Filter surahs by search
+  const filteredSurahs = allSurahs.filter((s) => {
+    if (!surahSearch.trim()) return true;
+    const q = surahSearch.toLowerCase();
+    return s.name.toLowerCase().includes(q) || s.nameAr.includes(q) || s.number.toString() === q;
+  });
+
   const getAudioUrl = useCallback((ayahIndex: number, qariIdx?: number) => {
-    const surahNum = surahs[selectedSurah].number;
+    const surahNum = currentSurah.number;
     const absNum = getAbsoluteAyahNumber(surahNum, ayahIndex + 1);
     const qari = qurraa[qariIdx ?? selectedQari].id;
     return `https://cdn.islamic.network/quran/audio/128/${qari}/${absNum}.mp3`;
-  }, [selectedSurah, selectedQari]);
+  }, [currentSurah.number, selectedQari]);
 
   const stopQari = useCallback(() => {
     if (qariAudioRef.current) {
@@ -226,8 +348,8 @@ const PracticeRoom = () => {
     if (!tajweedResult) return;
     const practice: SavedPractice = {
       id: Date.now().toString(),
-      surahName: surahs[selectedSurah].name,
-      surahNameAr: surahs[selectedSurah].nameAr,
+      surahName: currentSurah.name,
+      surahNameAr: currentSurah.nameAr,
       result: tajweedResult,
       timestamp: new Date(),
       pinned: false,
@@ -281,19 +403,49 @@ const PracticeRoom = () => {
           <h3 className="font-semibold text-card-foreground mb-3 text-sm">
             {isAr ? "اختر السورة" : "Select Surah"}
           </h3>
-          <div className="space-y-1">
-            {surahs.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => { setSelectedSurah(i); setTajweedResult(null); stopQari(); }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all ${
-                  selectedSurah === i ? "bg-primary text-primary-foreground" : "hover:bg-muted text-card-foreground"
-                }`}
-              >
-                <span className="font-medium">{isAr ? s.nameAr : s.name}</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            ))}
+          {/* Search */}
+          <div className="relative mb-3">
+            <Search className="absolute left-2.5 rtl:left-auto rtl:right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={surahSearch}
+              onChange={(e) => setSurahSearch(e.target.value)}
+              placeholder={isAr ? "ابحث عن سورة..." : "Search surah..."}
+              className="w-full pl-8 rtl:pl-3 rtl:pr-8 pr-3 py-2 bg-muted/50 rounded-lg text-sm text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              dir={isAr ? "rtl" : "ltr"}
+            />
+          </div>
+          <div className="space-y-0.5 max-h-[60vh] overflow-y-auto">
+            {filteredSurahs.map((s) => {
+              const idx = allSurahs.indexOf(s);
+              return (
+                <button
+                  key={s.number}
+                  onClick={() => { setSelectedSurah(idx); setTajweedResult(null); stopQari(); }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all ${
+                    selectedSurah === idx ? "bg-primary text-primary-foreground" : "hover:bg-muted text-card-foreground"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
+                      selectedSurah === idx ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                    }`}>
+                      {s.number}
+                    </span>
+                    <div className="text-left rtl:text-right min-w-0">
+                      <p className="font-medium truncate">{isAr ? s.nameAr : s.name}</p>
+                      <p className={`text-[10px] ${selectedSurah === idx ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                        {s.verses} {isAr ? "آية" : "verses"} · {s.type}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 flex-shrink-0" />
+                </button>
+              );
+            })}
+            {filteredSurahs.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">{isAr ? "لا توجد نتائج" : "No results"}</p>
+            )}
           </div>
         </div>
 
@@ -381,14 +533,22 @@ const PracticeRoom = () => {
           <div className="bg-card rounded-xl shadow-card p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-card-foreground">
-                {isAr ? surahs[selectedSurah].nameAr : surahs[selectedSurah].name}
+                {isAr ? currentSurah.nameAr : currentSurah.name}
               </h3>
               <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
                 {verses.length} {isAr ? "آية" : "verses"}
               </span>
             </div>
 
-            <div className="space-y-3">
+            {isLoadingVerses ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
+                <p className="text-sm text-muted-foreground">{isAr ? "جارٍ تحميل الآيات..." : "Loading verses..."}</p>
+              </div>
+            ) : verses.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">{isAr ? "لا توجد آيات" : "No verses loaded"}</p>
+            ) : (
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
               {verses.map((v, i) => (
                 <div
                   key={i}
@@ -420,6 +580,7 @@ const PracticeRoom = () => {
                 </div>
               ))}
             </div>
+            )}
           </div>
 
           {/* Live transcript */}
