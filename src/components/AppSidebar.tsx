@@ -1,8 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
+import { useAuth } from "@/hooks/useAuth";
 import {
   BookOpen, Home, Mic, Camera, PenTool, Headphones,
-  Trophy, Settings, Users, BarChart3, Globe, UserCircle, GraduationCap
+  Trophy, Settings, Users, BarChart3, Globe, UserCircle, GraduationCap, LogOut
 } from "lucide-react";
 
 const studentNav = [
@@ -27,6 +28,7 @@ const teacherNav = [
 
 export const AppSidebar = () => {
   const { role, setRole, language, setLanguage } = useAppContext();
+  const { signOut } = useAuth();
   const location = useLocation();
   const nav = role === "student" ? studentNav : teacherNav;
   const isAr = language === "ar";
@@ -93,6 +95,15 @@ export const AppSidebar = () => {
               ? role === "student" ? "تبديل إلى معلم" : "تبديل إلى طالب"
               : role === "student" ? "Switch to Teacher" : "Switch to Student"}
           </span>
+        </button>
+
+        {/* Sign out */}
+        <button
+          onClick={signOut}
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-all"
+        >
+          <LogOut className="w-5 h-5" />
+          <span>{isAr ? "تسجيل الخروج" : "Sign Out"}</span>
         </button>
       </div>
     </aside>
