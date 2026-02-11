@@ -105,12 +105,51 @@ const WritingLab = () => {
             </div>
           </div>
 
-          {/* Corrected text */}
+          {/* Corrected text with inline highlights */}
           {analysis?.correctedText && (
             <div className="bg-card rounded-xl shadow-card p-5">
               <h3 className="font-semibold text-card-foreground mb-2 text-sm">{isAr ? "النص المصحح" : "Corrected Text"}</h3>
-              <p className="text-sm text-card-foreground leading-relaxed bg-success/5 rounded-lg p-4" dir={essayLang === "ar" ? "rtl" : "ltr"}>
-                {analysis.correctedText}
+              <div className="text-sm text-card-foreground leading-relaxed bg-muted/20 rounded-lg p-4" dir={essayLang === "ar" ? "rtl" : "ltr"}>
+                {(() => {
+                  let highlighted = analysis.correctedText;
+                  const elements: React.ReactNode[] = [];
+                  
+                  if (analysis.errors && analysis.errors.length > 0) {
+                    // Build a version that highlights corrections inline
+                    let remaining = analysis.correctedText;
+                    let key = 0;
+                    
+                    for (const err of analysis.errors) {
+                      const idx = remaining.indexOf(err.correction);
+                      if (idx !== -1) {
+                        // Text before the correction
+                        if (idx > 0) elements.push(<span key={key++}>{remaining.slice(0, idx)}</span>);
+                        // The correction highlighted
+                        elements.push(
+                          <span key={key++} className="relative group cursor-help">
+                            <span className="bg-destructive/15 text-destructive border-b-2 border-destructive/60 rounded px-0.5 font-medium">
+                              {err.correction}
+                            </span>
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-popover text-popover-foreground text-xs rounded-lg shadow-elevated px-3 py-2 whitespace-nowrap z-10 border border-border">
+                              <span className="line-through text-destructive/70">{err.original}</span> → <span className="text-success font-medium">{err.correction}</span>
+                              <br />
+                              <span className="text-muted-foreground">{err.explanation}</span>
+                            </span>
+                          </span>
+                        );
+                        remaining = remaining.slice(idx + err.correction.length);
+                      }
+                    }
+                    if (remaining) elements.push(<span key={key++}>{remaining}</span>);
+                    
+                    return elements.length > 0 ? elements : highlighted;
+                  }
+                  return highlighted;
+                })()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                <span className="inline-block w-3 h-3 bg-destructive/15 border-b-2 border-destructive/60 rounded" />
+                {isAr ? "مرر فوق الكلمات المميزة لرؤية التفاصيل" : "Hover highlighted words to see details"}
               </p>
             </div>
           )}
