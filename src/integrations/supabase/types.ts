@@ -118,6 +118,45 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_lecture_notes: {
+        Row: {
+          created_at: string
+          highlights: Json | null
+          id: string
+          key_terms: Json | null
+          original_text: string | null
+          questions_and_answers: Json | null
+          sections: Json | null
+          summary: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          highlights?: Json | null
+          id?: string
+          key_terms?: Json | null
+          original_text?: string | null
+          questions_and_answers?: Json | null
+          sections?: Json | null
+          summary?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          highlights?: Json | null
+          id?: string
+          key_terms?: Json | null
+          original_text?: string | null
+          questions_and_answers?: Json | null
+          sections?: Json | null
+          summary?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

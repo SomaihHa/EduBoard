@@ -4,8 +4,9 @@ import { AppLayout } from "@/components/AppLayout";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { supabase } from "@/integrations/supabase/client";
-import { Mic, MicOff, FileText, Loader2, BookOpen, Lightbulb, HelpCircle, Play, Pause, RotateCcw, Volume2, Square } from "lucide-react";
+import { Mic, MicOff, FileText, Loader2, BookOpen, Lightbulb, HelpCircle, RotateCcw, Volume2, Square, Save, Trash2, List, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface LectureSection {
   heading: string;
@@ -22,8 +23,20 @@ interface LectureAnalysis {
   highlights: string[];
 }
 
+interface SavedNote {
+  id: string;
+  title: string;
+  summary: string | null;
+  sections: LectureSection[];
+  key_terms: { term: string; definition: string }[];
+  questions_and_answers: { question: string; answer: string }[];
+  highlights: string[];
+  created_at: string;
+}
+
 const LectureNotes = () => {
   const { language } = useAppContext();
+  const { user } = useAuth();
   const isAr = language === "ar";
   const { isRecording, audioUrl, startRecording, stopRecording, resetRecording, duration, error: recError } = useAudioRecorder();
   const { isListening, transcript, interimTranscript, startListening, stopListening, resetTranscript, isSupported, error: speechError } = useSpeechRecognition();
@@ -31,32 +44,46 @@ const LectureNotes = () => {
   const [analysis, setAnalysis] = useState<LectureAnalysis | null>(null);
   const [manualText, setManualText] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [savedNotes, setSavedNotes] = useState<SavedNote[]>([]);
+  const [showSaved, setShowSaved] = useState(false);
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
+  const [savingNote, setSavingNote] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // Cleanup speech on unmount
   useEffect(() => {
     return () => { window.speechSynthesis.cancel(); };
   }, []);
 
-  const getFullNotesText = useCallback(() => {
-    if (!analysis) return "";
-    const parts: string[] = [];
-    if (analysis.title) parts.push(analysis.title);
-    if (analysis.summary) parts.push(analysis.summary);
-    analysis.sections?.forEach(s => parts.push(`${s.heading}. ${s.content}`));
-    analysis.keyTerms?.forEach(kt => parts.push(`${kt.term}: ${kt.definition}`));
-    analysis.questionsAndAnswers?.forEach(qa => parts.push(`${qa.question} ${qa.answer}`));
-    analysis.highlights?.forEach(h => parts.push(h));
-    return parts.join(". ");
-  }, [analysis]);
+  // Load saved notes
+  useEffect(() => {
+    if (user) fetchSavedNotes();
+  }, [user]);
 
-  const handleReadAloud = () => {
+  const fetchSavedNotes = async () => {
+    const { data } = await supabase
+      .from("saved_lecture_notes")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (data) setSavedNotes(data as unknown as SavedNote[]);
+  };
+
+  const getNotesText = useCallback((a: LectureAnalysis) => {
+    const parts: string[] = [];
+    if (a.title) parts.push(a.title);
+    if (a.summary) parts.push(a.summary);
+    a.sections?.forEach(s => parts.push(`${s.heading}. ${s.content}`));
+    a.keyTerms?.forEach(kt => parts.push(`${kt.term}: ${kt.definition}`));
+    a.questionsAndAnswers?.forEach(qa => parts.push(`${qa.question} ${qa.answer}`));
+    a.highlights?.forEach(h => parts.push(h));
+    return parts.join(". ");
+  }, []);
+
+  const speakText = (text: string) => {
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
       return;
     }
-    const text = getFullNotesText();
     if (!text) return;
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = isAr ? "ar-SA" : "en-US";
@@ -66,6 +93,61 @@ const LectureNotes = () => {
     utteranceRef.current = utterance;
     setIsSpeaking(true);
     window.speechSynthesis.speak(utterance);
+  };
+
+  const handleReadAloud = () => {
+    if (!analysis) return;
+    speakText(getNotesText(analysis));
+  };
+
+  const handleReadSavedNote = (note: SavedNote) => {
+    const a: LectureAnalysis = {
+      title: note.title,
+      summary: note.summary || "",
+      sections: note.sections || [],
+      keyTerms: note.key_terms || [],
+      questionsAndAnswers: note.questions_and_answers || [],
+      highlights: note.highlights || [],
+    };
+    speakText(getNotesText(a));
+  };
+
+  const handleSaveNote = async () => {
+    if (!analysis || !user) return;
+    setSavingNote(true);
+    try {
+      const { error } = await supabase.from("saved_lecture_notes").insert({
+        user_id: user.id,
+        title: analysis.title,
+        summary: analysis.summary,
+        sections: analysis.sections as any,
+        key_terms: analysis.keyTerms as any,
+        questions_and_answers: analysis.questionsAndAnswers as any,
+        highlights: analysis.highlights as any,
+        original_text: transcript || manualText,
+      });
+      if (error) throw error;
+      toast({ title: isAr ? "تم الحفظ" : "Saved!", description: isAr ? "تم حفظ الملاحظات" : "Notes saved to your library" });
+      fetchSavedNotes();
+      setShowSaved(true);
+    } catch (err: any) {
+      toast({ title: isAr ? "خطأ" : "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (id: string) => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+    const { error } = await supabase.from("saved_lecture_notes").delete().eq("id", id);
+    if (error) {
+      toast({ title: isAr ? "خطأ" : "Error", description: error.message, variant: "destructive" });
+    } else {
+      setSavedNotes(prev => prev.filter(n => n.id !== id));
+      if (expandedNoteId === id) setExpandedNoteId(null);
+      toast({ title: isAr ? "تم الحذف" : "Deleted" });
+    }
   };
 
   const handleStartRecording = async () => {
@@ -131,6 +213,77 @@ const LectureNotes = () => {
         <p className="text-muted-foreground mt-1">
           {isAr ? "سجّل المحاضرة وحوّلها إلى ملاحظات منظمة بالذكاء الاصطناعي" : "Record lectures and convert them into AI-structured notes"}
         </p>
+      </div>
+
+      {/* Saved Notes Library */}
+      <div className="mb-6">
+        <button
+          onClick={() => setShowSaved(!showSaved)}
+          className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+        >
+          <List className="w-4 h-4" />
+          {isAr ? `المحفوظات (${savedNotes.length})` : `Saved Notes (${savedNotes.length})`}
+          {showSaved ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+
+        {showSaved && (
+          <div className="mt-3 space-y-2">
+            {savedNotes.length === 0 && (
+              <p className="text-sm text-muted-foreground bg-card rounded-xl shadow-card p-4">
+                {isAr ? "لا توجد ملاحظات محفوظة بعد" : "No saved notes yet"}
+              </p>
+            )}
+            {savedNotes.map(note => (
+              <div key={note.id} className="bg-card rounded-xl shadow-card overflow-hidden">
+                <div className="flex items-center justify-between p-4">
+                  <button
+                    onClick={() => setExpandedNoteId(expandedNoteId === note.id ? null : note.id)}
+                    className="flex-1 text-left"
+                  >
+                    <p className="font-semibold text-card-foreground text-sm">{note.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(note.created_at).toLocaleDateString(isAr ? "ar" : "en", { dateStyle: "medium" })}
+                    </p>
+                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleReadSavedNote(note)}
+                      className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      title={isAr ? "اقرأ بصوت عالٍ" : "Read Aloud"}
+                    >
+                      {isSpeaking ? <Square className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteNote(note.id)}
+                      className="p-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                      title={isAr ? "حذف" : "Delete"}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+                {expandedNoteId === note.id && (
+                  <div className="px-4 pb-4 space-y-2 border-t border-border pt-3">
+                    {note.summary && <p className="text-sm text-muted-foreground">{note.summary}</p>}
+                    {note.sections?.map((sec, i) => (
+                      <div key={i} className="bg-muted/30 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-card-foreground">{sec.heading}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{sec.content}</p>
+                      </div>
+                    ))}
+                    {note.highlights?.length > 0 && (
+                      <div className="bg-mint rounded-lg p-3">
+                        {note.highlights.map((h, i) => (
+                          <p key={i} className="text-xs text-foreground">⭐ {h}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -223,24 +376,34 @@ const LectureNotes = () => {
 
           {analysis && (
             <>
-              {/* Summary + Read Aloud */}
+              {/* Summary + Actions */}
               <div className="bg-card rounded-xl shadow-card p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <h2 className="text-lg font-bold text-card-foreground mb-1">{analysis.title}</h2>
                     <p className="text-sm text-muted-foreground">{analysis.summary}</p>
                   </div>
-                  <button
-                    onClick={handleReadAloud}
-                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      isSpeaking
-                        ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
-                        : "bg-primary/10 text-primary hover:bg-primary/20"
-                    }`}
-                  >
-                    {isSpeaking ? <Square className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                    {isSpeaking ? (isAr ? "إيقاف" : "Stop") : (isAr ? "اقرأ بصوت عالٍ" : "Read Aloud")}
-                  </button>
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      onClick={handleReadAloud}
+                      className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        isSpeaking
+                          ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                          : "bg-primary/10 text-primary hover:bg-primary/20"
+                      }`}
+                    >
+                      {isSpeaking ? <Square className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                      {isSpeaking ? (isAr ? "إيقاف" : "Stop") : (isAr ? "استمع" : "Listen")}
+                    </button>
+                    <button
+                      onClick={handleSaveNote}
+                      disabled={savingNote}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-success/10 text-success hover:bg-success/20 transition-all disabled:opacity-50"
+                    >
+                      {savingNote ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                      {isAr ? "حفظ" : "Save"}
+                    </button>
+                  </div>
                 </div>
               </div>
 
