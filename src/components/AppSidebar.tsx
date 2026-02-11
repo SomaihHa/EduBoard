@@ -6,7 +6,7 @@ import {
   BookOpen, Home, Mic, Camera, PenTool, Headphones,
   Trophy, Settings, Users, BarChart3, Globe, UserCircle, LogOut, Bot, Presentation, Moon, Sun
 } from "lucide-react";
-import eduboardLogo from "@/assets/eduboard-logo.png";
+import EduBoardLogo from "@/components/EduBoardLogo";
 
 const studentNav = [
   { icon: Home, label: "Dashboard", labelAr: "لوحة التحكم", path: "/" },
@@ -59,16 +59,11 @@ export const AppSidebar = () => {
       {/* Logo */}
       <div className="px-6 py-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <img src={eduboardLogo} alt="EduBoard" className="h-9 w-auto rounded-lg" />
-          <div>
-            <h1 className="text-lg font-extrabold tracking-tight text-white">
-              EduBoard
-            </h1>
-            <p className="text-[11px] text-sidebar-foreground/50 font-medium uppercase tracking-widest">
-              {isAr ? "تعليم ذكي" : "Smart Learning"}
-            </p>
-          </div>
+          <EduBoardLogo />
         </div>
+        <p className="text-[11px] text-sidebar-foreground/50 font-medium uppercase tracking-widest mt-1 ml-1">
+          {isAr ? "تعليم ذكي" : "Smart Learning"}
+        </p>
       </div>
 
       {/* Navigation */}

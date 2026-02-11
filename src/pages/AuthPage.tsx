@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, AppRole } from "@/hooks/useAuth";
 import { Loader2, BookOpen, Users, ArrowRight } from "lucide-react";
-import eduboardLogo from "@/assets/eduboard-logo.png";
+import EduBoardLogo from "@/components/EduBoardLogo";
 import { toast } from "@/hooks/use-toast";
 
 const AuthPage = () => {
@@ -53,9 +53,8 @@ const AuthPage = () => {
         <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-teal-500/8 rounded-full blur-[100px]" />
 
         {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <img src={eduboardLogo} alt="EduBoard" className="h-10 w-auto" />
-          <span className="text-xl font-bold text-white tracking-tight">EduBoard</span>
+        <div className="relative z-10">
+          <EduBoardLogo size="large" />
         </div>
 
         {/* Hero Content */}
