@@ -241,7 +241,22 @@ const LectureNotes = () => {
                     className="flex-1 text-left"
                   >
                     <p className="font-semibold text-card-foreground text-sm">{note.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    {note.summary && (
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{note.summary}</p>
+                    )}
+                    {note.highlights?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {note.highlights.slice(0, 3).map((h, i) => (
+                          <span key={i} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                            {h.length > 40 ? h.slice(0, 40) + "…" : h}
+                          </span>
+                        ))}
+                        {note.highlights.length > 3 && (
+                          <span className="text-[10px] text-muted-foreground px-1">+{note.highlights.length - 3}</span>
+                        )}
+                      </div>
+                    )}
+                    <p className="text-[10px] text-muted-foreground mt-1">
                       {new Date(note.created_at).toLocaleDateString(isAr ? "ar" : "en", { dateStyle: "medium" })}
                     </p>
                   </button>
