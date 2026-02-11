@@ -4,8 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import {
   BookOpen, Home, Mic, Camera, PenTool, Headphones,
-  Trophy, Settings, Users, BarChart3, Globe, UserCircle, GraduationCap, LogOut, Bot, Presentation, Moon, Sun
+  Trophy, Settings, Users, BarChart3, Globe, UserCircle, LogOut, Bot, Presentation, Moon, Sun
 } from "lucide-react";
+import eduboardLogo from "@/assets/eduboard-logo.png";
 
 const studentNav = [
   { icon: Home, label: "Dashboard", labelAr: "لوحة التحكم", path: "/" },
@@ -58,9 +59,7 @@ export const AppSidebar = () => {
       {/* Logo */}
       <div className="px-6 py-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25">
-            <GraduationCap className="w-5 h-5 text-white" />
-          </div>
+          <img src={eduboardLogo} alt="EduBoard" className="h-9 w-auto rounded-lg" />
           <div>
             <h1 className="text-lg font-extrabold tracking-tight text-white">
               EduBoard
