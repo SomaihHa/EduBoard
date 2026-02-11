@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import {
   BookOpen, Home, Mic, Camera, PenTool, Headphones,
-  Trophy, Settings, Users, BarChart3, Globe, UserCircle, LogOut, Bot, Presentation, Moon, Sun
+  Trophy, Settings, Users, BarChart3, Globe, UserCircle, LogOut, Bot, Presentation, Moon, Sun, Sparkles
 } from "lucide-react";
 import EduBoardLogo from "@/components/EduBoardLogo";
 
@@ -16,6 +16,7 @@ const studentNav = [
   { icon: Camera, label: "Homework Scan", labelAr: "مسح الواجبات", path: "/homework" },
   { icon: PenTool, label: "Writing Lab", labelAr: "مختبر الكتابة", path: "/writing" },
   { icon: Headphones, label: "Lecture Notes", labelAr: "ملاحظات المحاضرة", path: "/lectures" },
+  { icon: Sparkles, label: "Skills Hub", labelAr: "مركز المهارات", path: "/skills" },
   { icon: Trophy, label: "Achievements", labelAr: "الإنجازات", path: "/achievements" },
 ];
 
