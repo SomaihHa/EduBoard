@@ -4,8 +4,18 @@ import { AppLayout } from "@/components/AppLayout";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { supabase } from "@/integrations/supabase/client";
-import { Mic, MicOff, Play, Pause, RotateCcw, ChevronRight, Volume2, Loader2, Headphones } from "lucide-react";
+import { Mic, MicOff, Play, Pause, Square, RotateCcw, ChevronRight, ChevronDown, Volume2, Loader2, User } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+
+// Available Qurra (reciters) with their CDN identifiers
+const qurraa = [
+  { id: "ar.alafasy", name: "Mishary Rashid Alafasy", nameAr: "مشاري راشد العفاسي" },
+  { id: "ar.abdurrahmaansudais", name: "Abdurrahman As-Sudais", nameAr: "عبدالرحمن السديس" },
+  { id: "ar.husary", name: "Mahmoud Khalil Al-Husary", nameAr: "محمود خليل الحصري" },
+  { id: "ar.minshawi", name: "Mohamed Siddiq Al-Minshawi", nameAr: "محمد صديق المنشاوي" },
+  { id: "ar.abdulbasitmurattal", name: "Abdul Basit (Murattal)", nameAr: "عبدالباسط عبدالصمد (مرتّل)" },
+  { id: "ar.ahmedajamy", name: "Ahmed Al-Ajamy", nameAr: "أحمد العجمي" },
+];
 
 // Surah numbers in the Quran for the API
 const surahs = [
@@ -44,15 +54,8 @@ const surahVerses: Record<number, { arabic: string; translation: string }[]> = {
   ],
 };
 
-// Lookup table for absolute ayah numbers (starting ayah number for each surah)
-// Source: Quran has 6236 ayahs total. We only need the surahs we support.
 const surahStartAyah: Record<number, number> = {
-  1: 1,    // Al-Fatiha starts at ayah 1
-  2: 8,    // Al-Baqarah starts at ayah 8
-  36: 2596, // Ya-Sin starts at ayah 2596
-  112: 6222, // Al-Ikhlas starts at ayah 6222
-  113: 6226, // Al-Falaq starts at ayah 6226
-  114: 6231, // An-Nas starts at ayah 6231
+  1: 1, 2: 8, 36: 2596, 112: 6222, 113: 6226, 114: 6231,
 };
 
 const getAbsoluteAyahNumber = (surahNum: number, ayahNum: number): number => {
@@ -76,11 +79,15 @@ const PracticeRoom = () => {
   const [tajweedResult, setTajweedResult] = useState<TajweedResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Qari audio state
+  // Qari state
+  const [selectedQari, setSelectedQari] = useState(0);
+  const [qariDropdownOpen, setQariDropdownOpen] = useState(false);
   const [isPlayingQari, setIsPlayingQari] = useState(false);
+  const [isPausedQari, setIsPausedQari] = useState(false);
   const [isLoadingQari, setIsLoadingQari] = useState(false);
   const [playingAyah, setPlayingAyah] = useState<number | null>(null);
   const qariAudioRef = useRef<HTMLAudioElement | null>(null);
+  const playNextRef = useRef<((index: number) => void) | null>(null);
 
   const { isRecording, audioUrl, startRecording, stopRecording, resetRecording, error: recError } = useAudioRecorder();
   const { isListening, transcript, interimTranscript, startListening, stopListening, resetTranscript, isSupported, error: speechError } = useSpeechRecognition();
@@ -88,90 +95,84 @@ const PracticeRoom = () => {
   const verses = surahVerses[selectedSurah] || surahVerses[0];
   const fullSurahText = verses.map((v) => v.arabic).join(" ");
 
-  // Play single ayah from Qari (Mishary Rashid Alafasy via api.alquran.cloud)
-  const playAyah = useCallback(async (ayahIndex: number) => {
-    // Stop any currently playing audio
+  const getAudioUrl = useCallback((ayahIndex: number, qariIdx?: number) => {
+    const surahNum = surahs[selectedSurah].number;
+    const absNum = getAbsoluteAyahNumber(surahNum, ayahIndex + 1);
+    const qari = qurraa[qariIdx ?? selectedQari].id;
+    return `https://cdn.islamic.network/quran/audio/128/${qari}/${absNum}.mp3`;
+  }, [selectedSurah, selectedQari]);
+
+  const stopQari = useCallback(() => {
     if (qariAudioRef.current) {
       qariAudioRef.current.pause();
+      qariAudioRef.current.currentTime = 0;
       qariAudioRef.current = null;
     }
+    setIsPlayingQari(false);
+    setIsPausedQari(false);
+    setPlayingAyah(null);
+    setIsLoadingQari(false);
+    playNextRef.current = null;
+  }, []);
 
-    const surahNum = surahs[selectedSurah].number;
-    // ayahIndex is 0-based; Quran API is 1-based
-    const ayahNum = ayahIndex + 1;
-    // For Al-Fatiha index 0 is Bismillah which is ayah 1
-    const audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${getAbsoluteAyahNumber(surahNum, ayahNum)}.mp3`;
+  const pauseQari = useCallback(() => {
+    if (qariAudioRef.current && isPlayingQari) {
+      qariAudioRef.current.pause();
+      setIsPlayingQari(false);
+      setIsPausedQari(true);
+    }
+  }, [isPlayingQari]);
 
+  const resumeQari = useCallback(() => {
+    if (qariAudioRef.current && isPausedQari) {
+      qariAudioRef.current.play();
+      setIsPlayingQari(true);
+      setIsPausedQari(false);
+    }
+  }, [isPausedQari]);
+
+  const playAyah = useCallback((ayahIndex: number) => {
+    stopQari();
+    const url = getAudioUrl(ayahIndex);
     setPlayingAyah(ayahIndex);
     setIsLoadingQari(true);
 
-    const audio = new Audio(audioUrl);
+    const audio = new Audio(url);
     qariAudioRef.current = audio;
 
-    audio.oncanplaythrough = () => {
-      setIsLoadingQari(false);
-      setIsPlayingQari(true);
-      audio.play();
-    };
-
-    audio.onended = () => {
-      setIsPlayingQari(false);
-      setPlayingAyah(null);
-    };
-
+    audio.oncanplaythrough = () => { setIsLoadingQari(false); setIsPlayingQari(true); audio.play(); };
+    audio.onended = () => { setIsPlayingQari(false); setPlayingAyah(null); };
     audio.onerror = () => {
-      setIsLoadingQari(false);
-      setIsPlayingQari(false);
-      setPlayingAyah(null);
+      stopQari();
       toast({ title: isAr ? "خطأ" : "Error", description: isAr ? "تعذّر تحميل الصوت" : "Could not load audio", variant: "destructive" });
     };
-  }, [selectedSurah, isAr]);
+  }, [getAudioUrl, isAr, stopQari]);
 
-  // Play entire surah sequentially
-  const playFullSurah = useCallback(async () => {
-    if (isPlayingQari) {
-      // Stop playback
-      if (qariAudioRef.current) {
-        qariAudioRef.current.pause();
-        qariAudioRef.current = null;
-      }
-      setIsPlayingQari(false);
-      setPlayingAyah(null);
-      return;
-    }
-
-    const surahNum = surahs[selectedSurah].number;
+  const playFullSurah = useCallback((startFrom = 0) => {
+    stopQari();
     const totalAyahs = verses.length;
-    
-    const playNext = (index: number) => {
-      if (index >= totalAyahs) {
-        setIsPlayingQari(false);
-        setPlayingAyah(null);
-        return;
-      }
 
-      const absNum = getAbsoluteAyahNumber(surahNum, index + 1);
-      const audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${absNum}.mp3`;
-      const audio = new Audio(audioUrl);
+    const playNext = (index: number) => {
+      if (index >= totalAyahs) { stopQari(); return; }
+      const url = getAudioUrl(index);
+      const audio = new Audio(url);
       qariAudioRef.current = audio;
       setPlayingAyah(index);
+      setIsLoadingQari(true);
 
-      audio.oncanplaythrough = () => {
-        setIsLoadingQari(false);
-        audio.play();
-      };
+      audio.oncanplaythrough = () => { setIsLoadingQari(false); audio.play(); };
       audio.onended = () => playNext(index + 1);
-      audio.onerror = () => {
-        setIsPlayingQari(false);
-        setPlayingAyah(null);
-      };
+      audio.onerror = () => stopQari();
     };
 
+    playNextRef.current = playNext;
     setIsPlayingQari(true);
-    setIsLoadingQari(true);
-    playNext(0);
-  }, [selectedSurah, verses.length, isPlayingQari]);
+    playNext(startFrom);
+  }, [getAudioUrl, verses.length, stopQari]);
 
+  const restartQari = useCallback(() => playFullSurah(0), [playFullSurah]);
+
+  // --- Recording handlers ---
   const handleStartRecording = async () => {
     setTajweedResult(null);
     resetTranscript();
@@ -182,8 +183,6 @@ const PracticeRoom = () => {
   const handleStopRecording = async () => {
     stopRecording();
     stopListening();
-
-    // Wait a moment for final transcript
     setTimeout(async () => {
       const recitedText = transcript || interimTranscript;
       if (!recitedText.trim()) {
@@ -198,13 +197,8 @@ const PracticeRoom = () => {
     setIsAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-analyze", {
-        body: {
-          action: "tajweed-check",
-          text: `Correct text:\n${fullSurahText}\n\nStudent recited:\n${recitedText}`,
-          language: "ar",
-        },
+        body: { action: "tajweed-check", text: `Correct text:\n${fullSurahText}\n\nStudent recited:\n${recitedText}`, language: "ar" },
       });
-
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setTajweedResult(data);
@@ -220,12 +214,7 @@ const PracticeRoom = () => {
     resetRecording();
     resetTranscript();
     setTajweedResult(null);
-    if (qariAudioRef.current) {
-      qariAudioRef.current.pause();
-      qariAudioRef.current = null;
-    }
-    setIsPlayingQari(false);
-    setPlayingAyah(null);
+    stopQari();
   };
 
   return (
@@ -249,20 +238,9 @@ const PracticeRoom = () => {
             {surahs.map((s, i) => (
               <button
                 key={i}
-                onClick={() => {
-                  setSelectedSurah(i);
-                  setTajweedResult(null);
-                  if (qariAudioRef.current) {
-                    qariAudioRef.current.pause();
-                    qariAudioRef.current = null;
-                  }
-                  setIsPlayingQari(false);
-                  setPlayingAyah(null);
-                }}
+                onClick={() => { setSelectedSurah(i); setTajweedResult(null); stopQari(); }}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all ${
-                  selectedSurah === i
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted text-card-foreground"
+                  selectedSurah === i ? "bg-primary text-primary-foreground" : "hover:bg-muted text-card-foreground"
                 }`}
               >
                 <span className="font-medium">{isAr ? s.nameAr : s.name}</span>
@@ -274,38 +252,93 @@ const PracticeRoom = () => {
 
         {/* Main recitation area */}
         <div className="lg:col-span-2 space-y-4">
+          {/* Qari Selector + Controls */}
+          <div className="bg-card rounded-xl shadow-card p-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h3 className="font-semibold text-card-foreground text-sm flex items-center gap-2">
+                <User className="w-4 h-4 text-primary" />
+                {isAr ? "القارئ" : "Qari"}
+              </h3>
+              <div className="relative">
+                <button
+                  onClick={() => setQariDropdownOpen(!qariDropdownOpen)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg text-sm font-medium text-card-foreground hover:bg-muted/80 transition-colors"
+                >
+                  <span className="truncate max-w-[180px]">{isAr ? qurraa[selectedQari].nameAr : qurraa[selectedQari].name}</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${qariDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+                {qariDropdownOpen && (
+                  <div className="absolute top-full mt-1 right-0 rtl:right-auto rtl:left-0 w-72 bg-card border border-border rounded-xl shadow-elevated z-50 py-1 max-h-60 overflow-y-auto">
+                    {qurraa.map((q, i) => (
+                      <button
+                        key={q.id}
+                        onClick={() => { stopQari(); setSelectedQari(i); setQariDropdownOpen(false); }}
+                        className={`w-full text-left rtl:text-right px-4 py-2.5 text-sm transition-colors ${
+                          selectedQari === i ? "bg-primary/10 text-primary font-semibold" : "text-card-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {isAr ? q.nameAr : q.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Transport controls: Restart | Play/Pause | Stop */}
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <button
+                onClick={restartQari}
+                disabled={!isPlayingQari && !isPausedQari}
+                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors disabled:opacity-30"
+                title={isAr ? "إعادة" : "Restart"}
+              >
+                <RotateCcw className="w-4 h-4 text-muted-foreground" />
+              </button>
+
+              <button
+                onClick={() => {
+                  if (isPlayingQari) pauseQari();
+                  else if (isPausedQari) resumeQari();
+                  else playFullSurah(0);
+                }}
+                disabled={isLoadingQari}
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                  isPlayingQari ? "bg-secondary text-secondary-foreground" : "bg-gradient-primary text-primary-foreground hover:scale-105"
+                }`}
+              >
+                {isLoadingQari ? <Loader2 className="w-5 h-5 animate-spin" /> : isPlayingQari ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              </button>
+
+              <button
+                onClick={stopQari}
+                disabled={!isPlayingQari && !isPausedQari}
+                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors disabled:opacity-30"
+                title={isAr ? "إيقاف" : "Stop"}
+              >
+                <Square className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+
+            {(isPlayingQari || isPausedQari) && (
+              <p className="text-center text-xs text-muted-foreground mt-2">
+                {isPlayingQari && <span className="text-secondary animate-pulse">● </span>}
+                {isPausedQari && <span className="text-warning">⏸ </span>}
+                {isAr ? qurraa[selectedQari].nameAr : qurraa[selectedQari].name}
+                {playingAyah !== null && ` — ${isAr ? "آية" : "Ayah"} ${playingAyah + 1}`}
+              </p>
+            )}
+          </div>
+
           {/* Verse display */}
           <div className="bg-card rounded-xl shadow-card p-6">
-            {/* Header with Listen to Qari button */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-card-foreground">
                 {isAr ? surahs[selectedSurah].nameAr : surahs[selectedSurah].name}
               </h3>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                  {verses.length} {isAr ? "آية" : "verses"}
-                </span>
-                <button
-                  onClick={playFullSurah}
-                  disabled={isLoadingQari && !isPlayingQari}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                    isPlayingQari
-                      ? "bg-secondary text-secondary-foreground"
-                      : "bg-primary/10 text-primary hover:bg-primary/20"
-                  }`}
-                >
-                  {isLoadingQari && !isPlayingQari ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : isPlayingQari ? (
-                    <Pause className="w-3.5 h-3.5" />
-                  ) : (
-                    <Headphones className="w-3.5 h-3.5" />
-                  )}
-                  {isPlayingQari
-                    ? (isAr ? "إيقاف" : "Stop")
-                    : (isAr ? "استمع للقارئ" : "Listen to Qari")}
-                </button>
-              </div>
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                {verses.length} {isAr ? "آية" : "verses"}
+              </span>
             </div>
 
             <div className="space-y-3">
@@ -313,21 +346,16 @@ const PracticeRoom = () => {
                 <div
                   key={i}
                   className={`p-4 rounded-xl transition-all duration-300 ${
-                    playingAyah === i
-                      ? "bg-primary/10 ring-2 ring-primary/30"
-                      : "bg-muted/30"
+                    playingAyah === i ? "bg-primary/10 ring-2 ring-primary/30" : "bg-muted/30"
                   }`}
                 >
-                  <p className="quran-text text-card-foreground text-center leading-loose" dir="rtl">
-                    {v.arabic}
-                  </p>
+                  <p className="quran-text text-card-foreground text-center leading-loose" dir="rtl">{v.arabic}</p>
                   <p className="text-xs text-muted-foreground text-center mt-2">{v.translation}</p>
-                  {/* Per-ayah play button */}
                   <div className="flex justify-center mt-2">
                     <button
                       onClick={() => playAyah(i)}
                       className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${
-                        playingAyah === i && isPlayingQari
+                        playingAyah === i && (isPlayingQari || isPausedQari)
                           ? "bg-secondary text-secondary-foreground"
                           : "bg-muted text-muted-foreground hover:text-primary hover:bg-primary/10"
                       }`}
@@ -339,9 +367,7 @@ const PracticeRoom = () => {
                       ) : (
                         <Play className="w-3 h-3" />
                       )}
-                      {playingAyah === i && isPlayingQari
-                        ? (isAr ? "يُتلى..." : "Playing...")
-                        : (isAr ? "استمع" : "Listen")}
+                      {playingAyah === i && isPlayingQari ? (isAr ? "يُتلى..." : "Playing...") : (isAr ? "استمع" : "Listen")}
                     </button>
                   </div>
                 </div>
@@ -364,12 +390,8 @@ const PracticeRoom = () => {
 
           {/* Recording controls */}
           <div className="bg-card rounded-xl shadow-card p-5 flex flex-col items-center gap-3">
-            {(recError || speechError) && (
-              <p className="text-xs text-destructive">{recError || speechError}</p>
-            )}
-            {!isSupported && (
-              <p className="text-xs text-warning">{isAr ? "المتصفح لا يدعم التعرف على الكلام" : "Speech recognition not supported in this browser"}</p>
-            )}
+            {(recError || speechError) && <p className="text-xs text-destructive">{recError || speechError}</p>}
+            {!isSupported && <p className="text-xs text-warning">{isAr ? "المتصفح لا يدعم التعرف على الكلام" : "Speech recognition not supported in this browser"}</p>}
             <div className="flex items-center gap-4">
               <button onClick={handleReset} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors">
                 <RotateCcw className="w-5 h-5 text-muted-foreground" />
@@ -378,9 +400,7 @@ const PracticeRoom = () => {
                 onClick={isRecording ? handleStopRecording : handleStartRecording}
                 disabled={isAnalyzing}
                 className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
-                  isRecording
-                    ? "bg-destructive text-destructive-foreground scale-110 animate-pulse"
-                    : "bg-gradient-primary text-primary-foreground hover:scale-105"
+                  isRecording ? "bg-destructive text-destructive-foreground scale-110 animate-pulse" : "bg-gradient-primary text-primary-foreground hover:scale-105"
                 } disabled:opacity-50`}
               >
                 {isAnalyzing ? <Loader2 className="w-7 h-7 animate-spin" /> : isRecording ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
@@ -401,24 +421,16 @@ const PracticeRoom = () => {
 
         {/* Feedback panel */}
         <div className="space-y-4">
-          {/* Score */}
           <div className="bg-card rounded-xl shadow-card p-5 text-center">
-            <p className="text-sm text-muted-foreground mb-2">
-              {isAr ? "الدقة الحالية" : "Current Accuracy"}
-            </p>
+            <p className="text-sm text-muted-foreground mb-2">{isAr ? "الدقة الحالية" : "Current Accuracy"}</p>
             <p className="text-5xl font-bold text-gradient-primary">
               {tajweedResult ? `${tajweedResult.accuracyScore}%` : "—"}
             </p>
-            {tajweedResult?.feedback && (
-              <p className="text-xs text-success mt-2">{tajweedResult.feedback}</p>
-            )}
+            {tajweedResult?.feedback && <p className="text-xs text-success mt-2">{tajweedResult.feedback}</p>}
           </div>
 
-          {/* Tajweed rules */}
           <div className="bg-card rounded-xl shadow-card p-5">
-            <h3 className="font-semibold text-card-foreground mb-3 text-sm">
-              {isAr ? "أحكام التجويد" : "Tajweed Rules"}
-            </h3>
+            <h3 className="font-semibold text-card-foreground mb-3 text-sm">{isAr ? "أحكام التجويد" : "Tajweed Rules"}</h3>
             {tajweedResult?.tajweedRules ? (
               <div className="space-y-2">
                 {tajweedResult.tajweedRules.map((t, i) => (
@@ -433,12 +445,9 @@ const PracticeRoom = () => {
             )}
           </div>
 
-          {/* Mistakes */}
           {tajweedResult?.mistakes && tajweedResult.mistakes.length > 0 && (
             <div className="bg-card rounded-xl shadow-card p-5">
-              <h3 className="font-semibold text-card-foreground mb-3 text-sm">
-                {isAr ? "الأخطاء" : "Mistakes"}
-              </h3>
+              <h3 className="font-semibold text-card-foreground mb-3 text-sm">{isAr ? "الأخطاء" : "Mistakes"}</h3>
               <div className="space-y-2">
                 {tajweedResult.mistakes.map((m, i) => (
                   <div key={i} className="bg-destructive/5 rounded-lg p-2">
@@ -451,12 +460,9 @@ const PracticeRoom = () => {
             </div>
           )}
 
-          {/* Improvement tip */}
           {tajweedResult?.improvementTip && (
             <div className="bg-mint rounded-xl p-4">
-              <p className="text-sm font-medium text-foreground">
-                💡 {tajweedResult.improvementTip}
-              </p>
+              <p className="text-sm font-medium text-foreground">💡 {tajweedResult.improvementTip}</p>
             </div>
           )}
         </div>
