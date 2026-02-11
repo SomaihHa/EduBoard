@@ -22,20 +22,27 @@ import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: ("student" | "teacher")[] }) => {
+  const { user, loading, role } = useAuth();
+  
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Loader2 className="w-8 h-8 animate-spin text-primary" />
     </div>
   );
   if (!user) return <Navigate to="/auth" replace />;
+  
+  // If role-restricted and user's role doesn't match, redirect to home
+  if (allowedRoles && role && !allowedRoles.includes(role)) {
+    return <Navigate to="/" replace />;
+  }
+  
   return <>{children}</>;
 };
 
 const DashboardRouter = () => {
   const { role } = useAppContext();
-  return role === "student" ? <StudentDashboard /> : <TeacherDashboard />;
+  return role === "teacher" ? <TeacherDashboard /> : <StudentDashboard />;
 };
 
 const App = () => (
@@ -49,14 +56,17 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />
             <Route path="/ai-facilitator" element={<ProtectedRoute><AIFacilitator /></ProtectedRoute>} />
-            <Route path="/practice" element={<ProtectedRoute><PracticeRoom /></ProtectedRoute>} />
+            {/* Student-only routes */}
+            <Route path="/practice" element={<ProtectedRoute allowedRoles={["student"]}><PracticeRoom /></ProtectedRoute>} />
+            <Route path="/homework" element={<ProtectedRoute allowedRoles={["student"]}><HomeworkUpload /></ProtectedRoute>} />
+            <Route path="/writing" element={<ProtectedRoute allowedRoles={["student"]}><WritingLab /></ProtectedRoute>} />
+            <Route path="/lectures" element={<ProtectedRoute allowedRoles={["student"]}><LectureNotes /></ProtectedRoute>} />
+            <Route path="/skills" element={<ProtectedRoute allowedRoles={["student"]}><SkillsHub /></ProtectedRoute>} />
+            <Route path="/achievements" element={<ProtectedRoute allowedRoles={["student"]}><Achievements /></ProtectedRoute>} />
+            {/* Shared routes */}
             <Route path="/quran" element={<ProtectedRoute><QuranAssignments /></ProtectedRoute>} />
-            <Route path="/homework" element={<ProtectedRoute><HomeworkUpload /></ProtectedRoute>} />
-            <Route path="/writing" element={<ProtectedRoute><WritingLab /></ProtectedRoute>} />
-            <Route path="/lectures" element={<ProtectedRoute><LectureNotes /></ProtectedRoute>} />
-            <Route path="/presentations" element={<ProtectedRoute><Presentations /></ProtectedRoute>} />
-            <Route path="/skills" element={<ProtectedRoute><SkillsHub /></ProtectedRoute>} />
-            <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
+            {/* Teacher-only routes */}
+            <Route path="/presentations" element={<ProtectedRoute allowedRoles={["teacher"]}><Presentations /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import {
   BookOpen, Home, Mic, Camera, PenTool, Headphones,
-  Trophy, Settings, Users, BarChart3, Globe, UserCircle, LogOut, Bot, Presentation, Moon, Sun, Sparkles
+  Trophy, Settings, Users, BarChart3, Globe, LogOut, Bot, Presentation, Moon, Sun, Sparkles
 } from "lucide-react";
 import EduBoardLogo from "@/components/EduBoardLogo";
 
@@ -24,16 +24,15 @@ const teacherNav = [
   { icon: Home, label: "Dashboard", labelAr: "لوحة التحكم", path: "/" },
   { icon: Bot, label: "AI Facilitator", labelAr: "مساعد التعلّم", path: "/ai-facilitator" },
   { icon: Presentation, label: "Presentations", labelAr: "العروض التقديمية", path: "/presentations" },
+  { icon: BookOpen, label: "Quran Assignments", labelAr: "واجبات القرآن", path: "/quran" },
   { icon: Users, label: "Students", labelAr: "الطلاب", path: "/students" },
   { icon: BarChart3, label: "Analytics", labelAr: "التحليلات", path: "/analytics" },
-  { icon: BookOpen, label: "Assignments", labelAr: "الواجبات", path: "/assignments" },
-  { icon: Mic, label: "Recitation Review", labelAr: "مراجعة التلاوة", path: "/recitation-review" },
   { icon: Camera, label: "Submissions", labelAr: "التسليمات", path: "/submissions" },
   { icon: Settings, label: "Settings", labelAr: "الإعدادات", path: "/settings" },
 ];
 
 export const AppSidebar = () => {
-  const { role, setRole, language, setLanguage } = useAppContext();
+  const { role, language, setLanguage } = useAppContext();
   const { signOut } = useAuth();
   const location = useLocation();
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
@@ -107,22 +106,17 @@ export const AppSidebar = () => {
           <Globe className="w-5 h-5" />
           <span>{isAr ? "English" : "العربية"}</span>
         </button>
-        <button
-          onClick={() => setRole(role === "student" ? "teacher" : "student")}
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
-        >
-          <UserCircle className="w-5 h-5" />
-          <span>
-            {isAr
-              ? role === "student" ? "تبديل إلى معلم" : "تبديل إلى طالب"
-              : role === "student" ? "Switch to Teacher" : "Switch to Student"}
-          </span>
-        </button>
+
+        {/* Role badge (read-only) */}
+        <div className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-sidebar-foreground/50">
+          <span className="w-2 h-2 rounded-full bg-primary" />
+          <span>{isAr ? (role === "student" ? "طالب" : "معلم") : (role === "student" ? "Student" : "Teacher")}</span>
+        </div>
 
         {/* Sign out */}
         <button
           onClick={signOut}
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-all"
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-destructive/70 hover:text-destructive hover:bg-destructive/10 transition-all"
         >
           <LogOut className="w-5 h-5" />
           <span>{isAr ? "تسجيل الخروج" : "Sign Out"}</span>
