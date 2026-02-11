@@ -1,19 +1,20 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { AppLayout } from "@/components/AppLayout";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { supabase } from "@/integrations/supabase/client";
-import { Mic, MicOff, Play, RotateCcw, ChevronRight, Volume2, Loader2 } from "lucide-react";
+import { Mic, MicOff, Play, Pause, RotateCcw, ChevronRight, Volume2, Loader2, Headphones } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
+// Surah numbers in the Quran for the API
 const surahs = [
-  { name: "Al-Fatiha", nameAr: "الفاتحة", verses: 7, difficulty: "Easy" },
-  { name: "Al-Baqarah", nameAr: "البقرة", verses: 286, difficulty: "Hard" },
-  { name: "Al-Ikhlas", nameAr: "الإخلاص", verses: 4, difficulty: "Easy" },
-  { name: "Al-Falaq", nameAr: "الفلق", verses: 5, difficulty: "Easy" },
-  { name: "An-Nas", nameAr: "الناس", verses: 6, difficulty: "Easy" },
-  { name: "Ya-Sin", nameAr: "يس", verses: 83, difficulty: "Medium" },
+  { name: "Al-Fatiha", nameAr: "الفاتحة", verses: 7, difficulty: "Easy", number: 1 },
+  { name: "Al-Baqarah", nameAr: "البقرة", verses: 286, difficulty: "Hard", number: 2 },
+  { name: "Al-Ikhlas", nameAr: "الإخلاص", verses: 4, difficulty: "Easy", number: 112 },
+  { name: "Al-Falaq", nameAr: "الفلق", verses: 5, difficulty: "Easy", number: 113 },
+  { name: "An-Nas", nameAr: "الناس", verses: 6, difficulty: "Easy", number: 114 },
+  { name: "Ya-Sin", nameAr: "يس", verses: 83, difficulty: "Medium", number: 36 },
 ];
 
 const surahVerses: Record<number, { arabic: string; translation: string }[]> = {
@@ -43,6 +44,23 @@ const surahVerses: Record<number, { arabic: string; translation: string }[]> = {
   ],
 };
 
+// Lookup table for absolute ayah numbers (starting ayah number for each surah)
+// Source: Quran has 6236 ayahs total. We only need the surahs we support.
+const surahStartAyah: Record<number, number> = {
+  1: 1,    // Al-Fatiha starts at ayah 1
+  2: 8,    // Al-Baqarah starts at ayah 8
+  36: 2596, // Ya-Sin starts at ayah 2596
+  112: 6222, // Al-Ikhlas starts at ayah 6222
+  113: 6226, // Al-Falaq starts at ayah 6226
+  114: 6231, // An-Nas starts at ayah 6231
+};
+
+const getAbsoluteAyahNumber = (surahNum: number, ayahNum: number): number => {
+  const start = surahStartAyah[surahNum];
+  if (!start) return 1;
+  return start + ayahNum - 1;
+};
+
 interface TajweedResult {
   accuracyScore: number;
   tajweedRules: { rule: string; status: string; details: string }[];
@@ -58,11 +76,101 @@ const PracticeRoom = () => {
   const [tajweedResult, setTajweedResult] = useState<TajweedResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // Qari audio state
+  const [isPlayingQari, setIsPlayingQari] = useState(false);
+  const [isLoadingQari, setIsLoadingQari] = useState(false);
+  const [playingAyah, setPlayingAyah] = useState<number | null>(null);
+  const qariAudioRef = useRef<HTMLAudioElement | null>(null);
+
   const { isRecording, audioUrl, startRecording, stopRecording, resetRecording, error: recError } = useAudioRecorder();
   const { isListening, transcript, interimTranscript, startListening, stopListening, resetTranscript, isSupported, error: speechError } = useSpeechRecognition();
 
   const verses = surahVerses[selectedSurah] || surahVerses[0];
   const fullSurahText = verses.map((v) => v.arabic).join(" ");
+
+  // Play single ayah from Qari (Mishary Rashid Alafasy via api.alquran.cloud)
+  const playAyah = useCallback(async (ayahIndex: number) => {
+    // Stop any currently playing audio
+    if (qariAudioRef.current) {
+      qariAudioRef.current.pause();
+      qariAudioRef.current = null;
+    }
+
+    const surahNum = surahs[selectedSurah].number;
+    // ayahIndex is 0-based; Quran API is 1-based
+    const ayahNum = ayahIndex + 1;
+    // For Al-Fatiha index 0 is Bismillah which is ayah 1
+    const audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${getAbsoluteAyahNumber(surahNum, ayahNum)}.mp3`;
+
+    setPlayingAyah(ayahIndex);
+    setIsLoadingQari(true);
+
+    const audio = new Audio(audioUrl);
+    qariAudioRef.current = audio;
+
+    audio.oncanplaythrough = () => {
+      setIsLoadingQari(false);
+      setIsPlayingQari(true);
+      audio.play();
+    };
+
+    audio.onended = () => {
+      setIsPlayingQari(false);
+      setPlayingAyah(null);
+    };
+
+    audio.onerror = () => {
+      setIsLoadingQari(false);
+      setIsPlayingQari(false);
+      setPlayingAyah(null);
+      toast({ title: isAr ? "خطأ" : "Error", description: isAr ? "تعذّر تحميل الصوت" : "Could not load audio", variant: "destructive" });
+    };
+  }, [selectedSurah, isAr]);
+
+  // Play entire surah sequentially
+  const playFullSurah = useCallback(async () => {
+    if (isPlayingQari) {
+      // Stop playback
+      if (qariAudioRef.current) {
+        qariAudioRef.current.pause();
+        qariAudioRef.current = null;
+      }
+      setIsPlayingQari(false);
+      setPlayingAyah(null);
+      return;
+    }
+
+    const surahNum = surahs[selectedSurah].number;
+    const totalAyahs = verses.length;
+    
+    const playNext = (index: number) => {
+      if (index >= totalAyahs) {
+        setIsPlayingQari(false);
+        setPlayingAyah(null);
+        return;
+      }
+
+      const absNum = getAbsoluteAyahNumber(surahNum, index + 1);
+      const audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${absNum}.mp3`;
+      const audio = new Audio(audioUrl);
+      qariAudioRef.current = audio;
+      setPlayingAyah(index);
+
+      audio.oncanplaythrough = () => {
+        setIsLoadingQari(false);
+        audio.play();
+      };
+      audio.onended = () => playNext(index + 1);
+      audio.onerror = () => {
+        setIsPlayingQari(false);
+        setPlayingAyah(null);
+      };
+    };
+
+    setIsPlayingQari(true);
+    setIsLoadingQari(true);
+    playNext(0);
+  }, [selectedSurah, verses.length, isPlayingQari]);
 
   const handleStartRecording = async () => {
     setTajweedResult(null);
@@ -112,6 +220,12 @@ const PracticeRoom = () => {
     resetRecording();
     resetTranscript();
     setTajweedResult(null);
+    if (qariAudioRef.current) {
+      qariAudioRef.current.pause();
+      qariAudioRef.current = null;
+    }
+    setIsPlayingQari(false);
+    setPlayingAyah(null);
   };
 
   return (
@@ -135,7 +249,16 @@ const PracticeRoom = () => {
             {surahs.map((s, i) => (
               <button
                 key={i}
-                onClick={() => { setSelectedSurah(i); setTajweedResult(null); }}
+                onClick={() => {
+                  setSelectedSurah(i);
+                  setTajweedResult(null);
+                  if (qariAudioRef.current) {
+                    qariAudioRef.current.pause();
+                    qariAudioRef.current = null;
+                  }
+                  setIsPlayingQari(false);
+                  setPlayingAyah(null);
+                }}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all ${
                   selectedSurah === i
                     ? "bg-primary text-primary-foreground"
@@ -153,22 +276,74 @@ const PracticeRoom = () => {
         <div className="lg:col-span-2 space-y-4">
           {/* Verse display */}
           <div className="bg-card rounded-xl shadow-card p-6">
+            {/* Header with Listen to Qari button */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-card-foreground">
                 {isAr ? surahs[selectedSurah].nameAr : surahs[selectedSurah].name}
               </h3>
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                {verses.length} {isAr ? "آية" : "verses"}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                  {verses.length} {isAr ? "آية" : "verses"}
+                </span>
+                <button
+                  onClick={playFullSurah}
+                  disabled={isLoadingQari && !isPlayingQari}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                    isPlayingQari
+                      ? "bg-secondary text-secondary-foreground"
+                      : "bg-primary/10 text-primary hover:bg-primary/20"
+                  }`}
+                >
+                  {isLoadingQari && !isPlayingQari ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : isPlayingQari ? (
+                    <Pause className="w-3.5 h-3.5" />
+                  ) : (
+                    <Headphones className="w-3.5 h-3.5" />
+                  )}
+                  {isPlayingQari
+                    ? (isAr ? "إيقاف" : "Stop")
+                    : (isAr ? "استمع للقارئ" : "Listen to Qari")}
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {verses.map((v, i) => (
-                <div key={i} className="p-4 rounded-xl bg-muted/30">
+                <div
+                  key={i}
+                  className={`p-4 rounded-xl transition-all duration-300 ${
+                    playingAyah === i
+                      ? "bg-primary/10 ring-2 ring-primary/30"
+                      : "bg-muted/30"
+                  }`}
+                >
                   <p className="quran-text text-card-foreground text-center leading-loose" dir="rtl">
                     {v.arabic}
                   </p>
                   <p className="text-xs text-muted-foreground text-center mt-2">{v.translation}</p>
+                  {/* Per-ayah play button */}
+                  <div className="flex justify-center mt-2">
+                    <button
+                      onClick={() => playAyah(i)}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${
+                        playingAyah === i && isPlayingQari
+                          ? "bg-secondary text-secondary-foreground"
+                          : "bg-muted text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      }`}
+                    >
+                      {playingAyah === i && isLoadingQari ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : playingAyah === i && isPlayingQari ? (
+                        <Volume2 className="w-3 h-3 animate-pulse" />
+                      ) : (
+                        <Play className="w-3 h-3" />
+                      )}
+                      {playingAyah === i && isPlayingQari
+                        ? (isAr ? "يُتلى..." : "Playing...")
+                        : (isAr ? "استمع" : "Listen")}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
