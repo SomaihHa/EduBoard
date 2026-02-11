@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Inter', 'system-ui', 'sans-serif'],
+        body: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
         arabic: ['Noto Naskh Arabic', 'serif'],
       },
       colors: {
