@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, forwardRef } from "react";
 
 interface StatCardProps {
   icon: ReactNode;
@@ -8,18 +8,22 @@ interface StatCardProps {
   colorClass?: string;
 }
 
-export const StatCard = ({ icon, label, value, sub, colorClass = "bg-gradient-primary" }: StatCardProps) => (
-  <div className="bg-card rounded-xl shadow-card p-5 flex items-start gap-4 animate-slide-in">
-    <div className={`w-11 h-11 rounded-lg ${colorClass} flex items-center justify-center flex-shrink-0`}>
-      {icon}
+export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
+  ({ icon, label, value, sub, colorClass = "bg-gradient-primary" }, ref) => (
+    <div ref={ref} className="bg-card rounded-xl shadow-card p-5 flex items-start gap-4 animate-slide-in">
+      <div className={`w-11 h-11 rounded-lg ${colorClass} flex items-center justify-center flex-shrink-0`}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-2xl font-bold text-card-foreground">{value}</p>
+        {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+      </div>
     </div>
-    <div>
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="text-2xl font-bold text-card-foreground">{value}</p>
-      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
-    </div>
-  </div>
+  )
 );
+
+StatCard.displayName = "StatCard";
 
 interface ProgressRingProps {
   value: number;
