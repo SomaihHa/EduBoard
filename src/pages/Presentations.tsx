@@ -4,9 +4,10 @@ import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import PptxGenJS from "pptxgenjs";
 import {
   Presentation, ChevronLeft, ChevronRight, Play, Maximize2, Minimize2,
-  FileText, Loader2, Lightbulb, BookOpen, HelpCircle, List
+  FileText, Loader2, Lightbulb, BookOpen, HelpCircle, List, Download
 } from "lucide-react";
 
 interface LectureSection {
@@ -110,7 +111,145 @@ const Presentations = () => {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const exportToPPT = async (note: SavedNote) => {
+    setExporting(true);
+    try {
+      const pptx = new PptxGenJS();
+      pptx.author = "EduFine";
+      pptx.title = note.title;
+      pptx.layout = "LAYOUT_WIDE";
+
+      const COLORS = {
+        title: { bg: "1a365d", text: "FFFFFF", accent: "63b3ed" },
+        content: { bg: "FFFFFF", text: "1a202c", accent: "3182ce" },
+        terms: { bg: "fffbeb", text: "92400e", accent: "d97706" },
+        qa: { bg: "faf5ff", text: "553c9a", accent: "805ad5" },
+        highlights: { bg: "f0fff4", text: "22543d", accent: "38a169" },
+      };
+
+      // Title slide
+      const titleSlide = pptx.addSlide();
+      titleSlide.background = { color: COLORS.title.bg };
+      titleSlide.addText(note.title, {
+        x: 0.8, y: 1.5, w: "85%", h: 1.5,
+        fontSize: 36, bold: true, color: COLORS.title.text,
+        align: isAr ? "right" : "left",
+      });
+      if (note.summary) {
+        titleSlide.addText(note.summary, {
+          x: 0.8, y: 3.2, w: "85%", h: 2,
+          fontSize: 18, color: COLORS.title.accent,
+          align: isAr ? "right" : "left",
+        });
+      }
+      titleSlide.addText("EduFine Presentation", {
+        x: 0.8, y: 6.5, w: "85%", fontSize: 10, color: "718096", align: "center",
+      });
+
+      // Section slides
+      note.sections?.forEach((sec) => {
+        const s = pptx.addSlide();
+        s.background = { color: COLORS.content.bg };
+        s.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 0.15, h: "100%", fill: { color: COLORS.content.accent } });
+        s.addText(sec.heading, {
+          x: 0.6, y: 0.4, w: "88%", h: 0.8,
+          fontSize: 28, bold: true, color: COLORS.content.text,
+          align: isAr ? "right" : "left",
+        });
+        s.addText(sec.content, {
+          x: 0.6, y: 1.5, w: "88%", h: 5,
+          fontSize: 16, color: "4a5568",
+          align: isAr ? "right" : "left", valign: "top",
+          lineSpacingMultiple: 1.3,
+        });
+      });
+
+      // Key terms slides
+      if (note.key_terms?.length > 0) {
+        for (let i = 0; i < note.key_terms.length; i += 4) {
+          const chunk = note.key_terms.slice(i, i + 4);
+          const s = pptx.addSlide();
+          s.background = { color: COLORS.terms.bg };
+          s.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 0.15, h: "100%", fill: { color: COLORS.terms.accent } });
+          s.addText(isAr ? "المصطلحات الرئيسية" : "Key Terms", {
+            x: 0.6, y: 0.4, w: "88%", h: 0.8,
+            fontSize: 28, bold: true, color: COLORS.terms.text,
+            align: isAr ? "right" : "left",
+          });
+          chunk.forEach((kt, idx) => {
+            const yPos = 1.6 + idx * 1.2;
+            s.addText(kt.term, {
+              x: 0.8, y: yPos, w: "85%", h: 0.4,
+              fontSize: 18, bold: true, color: COLORS.terms.accent,
+              align: isAr ? "right" : "left",
+            });
+            s.addText(kt.definition, {
+              x: 0.8, y: yPos + 0.4, w: "85%", h: 0.6,
+              fontSize: 14, color: "6b7280",
+              align: isAr ? "right" : "left",
+            });
+          });
+        }
+      }
+
+      // Q&A slides
+      if (note.questions_and_answers?.length > 0) {
+        for (let i = 0; i < note.questions_and_answers.length; i += 2) {
+          const chunk = note.questions_and_answers.slice(i, i + 2);
+          const s = pptx.addSlide();
+          s.background = { color: COLORS.qa.bg };
+          s.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 0.15, h: "100%", fill: { color: COLORS.qa.accent } });
+          s.addText(isAr ? "أسئلة وأجوبة" : "Questions & Answers", {
+            x: 0.6, y: 0.4, w: "88%", h: 0.8,
+            fontSize: 28, bold: true, color: COLORS.qa.text,
+            align: isAr ? "right" : "left",
+          });
+          chunk.forEach((qa, idx) => {
+            const yPos = 1.6 + idx * 2.2;
+            s.addText(`❓ ${qa.question}`, {
+              x: 0.8, y: yPos, w: "85%", h: 0.6,
+              fontSize: 18, bold: true, color: COLORS.qa.text,
+              align: isAr ? "right" : "left",
+            });
+            s.addText(`💡 ${qa.answer}`, {
+              x: 0.8, y: yPos + 0.7, w: "85%", h: 1.2,
+              fontSize: 14, color: "6b7280",
+              align: isAr ? "right" : "left", valign: "top",
+            });
+          });
+        }
+      }
+
+      // Highlights slide
+      if (note.highlights?.length > 0) {
+        const s = pptx.addSlide();
+        s.background = { color: COLORS.highlights.bg };
+        s.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 0.15, h: "100%", fill: { color: COLORS.highlights.accent } });
+        s.addText(isAr ? "أبرز النقاط" : "Key Highlights", {
+          x: 0.6, y: 0.4, w: "88%", h: 0.8,
+          fontSize: 28, bold: true, color: COLORS.highlights.text,
+          align: isAr ? "right" : "left",
+        });
+        note.highlights.forEach((h, idx) => {
+          s.addText(`⭐ ${h}`, {
+            x: 0.8, y: 1.6 + idx * 0.8, w: "85%", h: 0.7,
+            fontSize: 16, color: "4a5568",
+            align: isAr ? "right" : "left",
+          });
+        });
+      }
+
+      await pptx.writeFile({ fileName: `${note.title.replace(/[^a-zA-Z0-9\u0600-\u06FF ]/g, "")}.pptx` });
+      toast({ title: isAr ? "تم التحميل" : "Downloaded!", description: isAr ? "تم تحميل العرض التقديمي" : "Presentation saved as .pptx" });
+    } catch (err: any) {
+      toast({ title: isAr ? "خطأ" : "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     if (user) fetchNotes();
@@ -207,28 +346,40 @@ const Presentations = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {notes.map(note => (
-              <button
+              <div
                 key={note.id}
-                onClick={() => handleSelectNote(note)}
-                className="bg-card rounded-xl shadow-card p-5 text-left hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border border-border group"
+                className="bg-card rounded-xl shadow-card p-5 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border border-border group"
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
-                    <Play className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-card-foreground text-sm truncate">{note.title}</p>
-                    {note.summary && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{note.summary}</p>
-                    )}
-                    <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
-                      <span>{new Date(note.created_at).toLocaleDateString(isAr ? "ar" : "en", { dateStyle: "medium" })}</span>
-                      <span>•</span>
-                      <span>{(note.sections?.length || 0) + (note.key_terms?.length > 0 ? 1 : 0) + (note.highlights?.length > 0 ? 1 : 0) + 1} {isAr ? "شريحة" : "slides"}</span>
+                <button
+                  onClick={() => handleSelectNote(note)}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+                      <Play className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-card-foreground text-sm truncate">{note.title}</p>
+                      {note.summary && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{note.summary}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
+                        <span>{new Date(note.created_at).toLocaleDateString(isAr ? "ar" : "en", { dateStyle: "medium" })}</span>
+                        <span>•</span>
+                        <span>{(note.sections?.length || 0) + (note.key_terms?.length > 0 ? 1 : 0) + (note.highlights?.length > 0 ? 1 : 0) + 1} {isAr ? "شريحة" : "slides"}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); exportToPPT(note); }}
+                  disabled={exporting}
+                  className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                >
+                  {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  {isAr ? "تحميل PPT" : "Download PPT"}
+                </button>
+              </div>
             ))}
           </div>
         )}
@@ -253,6 +404,14 @@ const Presentations = () => {
             {isAr ? "العودة" : "Back"}
           </button>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => selectedNote && exportToPPT(selectedNote)}
+              disabled={exporting}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+            >
+              {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              {isAr ? "تحميل PPT" : "Download PPT"}
+            </button>
             <span className="text-xs text-muted-foreground font-mono">
               {currentSlide + 1} / {slides.length}
             </span>
