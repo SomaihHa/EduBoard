@@ -63,7 +63,7 @@ export const AppSidebar = () => {
           </div>
           <div>
             <h1 className="text-lg font-extrabold tracking-tight text-white">
-              EduFine
+              EduBoard
             </h1>
             <p className="text-[11px] text-sidebar-foreground/50 font-medium uppercase tracking-widest">
               {isAr ? "تعليم ذكي" : "Smart Learning"}
