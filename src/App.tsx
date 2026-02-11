@@ -9,6 +9,7 @@ import TeacherDashboard from "./pages/TeacherDashboard";
 import PracticeRoom from "./pages/PracticeRoom";
 import HomeworkUpload from "./pages/HomeworkUpload";
 import WritingLab from "./pages/WritingLab";
+import LectureNotes from "./pages/LectureNotes";
 import Achievements from "./pages/Achievements";
 import NotFound from "./pages/NotFound";
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/quran" element={<PracticeRoom />} />
             <Route path="/homework" element={<HomeworkUpload />} />
             <Route path="/writing" element={<WritingLab />} />
+            <Route path="/lectures" element={<LectureNotes />} />
             <Route path="/achievements" element={<Achievements />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
