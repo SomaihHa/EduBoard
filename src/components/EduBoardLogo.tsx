@@ -1,33 +1,28 @@
 const EduBoardLogo = ({ className = "", size = "default" }: { className?: string; size?: "default" | "large" }) => {
   const isLarge = size === "large";
-  
+  const iconSize = isLarge ? "w-10 h-10" : "w-7 h-7";
+  const textSize = isLarge ? "text-[22px]" : "text-[15px]";
+  const gap = isLarge ? "gap-2" : "gap-1.5";
+
   return (
-    <div className={`flex items-center gap-0 select-none ${className}`}>
-      {/* Stylized "E" mark */}
-      <svg
-        viewBox="0 0 40 40"
-        fill="none"
-        className={isLarge ? "w-11 h-11" : "w-8 h-8"}
-      >
-        {/* Geometric E with horizontal bars */}
-        <rect x="6" y="4" width="6" height="32" rx="1.5" fill="white" />
-        <rect x="12" y="4" width="18" height="6" rx="1.5" fill="white" />
-        <rect x="12" y="17" width="14" height="5.5" rx="1.5" fill="url(#eduGrad)" />
-        <rect x="12" y="30" width="18" height="6" rx="1.5" fill="white" />
+    <div className={`flex items-center ${gap} select-none ${className}`}>
+      {/* Geometric E mark */}
+      <svg viewBox="0 0 36 36" fill="none" className={iconSize}>
+        <rect x="4" y="3" width="5.5" height="30" rx="2" fill="white" />
+        <rect x="9.5" y="3" width="20" height="5.5" rx="2" fill="white" />
+        <rect x="9.5" y="15.25" width="15" height="5.5" rx="2" fill="url(#eduGrad)" />
+        <rect x="9.5" y="27.5" width="20" height="5.5" rx="2" fill="white" />
         <defs>
-          <linearGradient id="eduGrad" x1="12" y1="17" x2="26" y2="22.5" gradientUnits="userSpaceOnUse">
+          <linearGradient id="eduGrad" x1="9.5" y1="15.25" x2="24.5" y2="20.75" gradientUnits="userSpaceOnUse">
             <stop stopColor="#34d399" />
-            <stop offset="1" stopColor="#14b8a6" />
+            <stop offset="1" stopColor="#2dd4bf" />
           </linearGradient>
         </defs>
       </svg>
 
-      {/* Text */}
       <span
-        className={`font-extrabold tracking-[0.04em] text-white uppercase ${
-          isLarge ? "text-2xl" : "text-base"
-        }`}
-        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        className={`font-bold tracking-[0.06em] text-white uppercase ${textSize}`}
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
       >
         duBoard
       </span>
