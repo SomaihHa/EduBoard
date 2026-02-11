@@ -3,7 +3,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useAuth } from "@/hooks/useAuth";
 import {
   BookOpen, Home, Mic, Camera, PenTool, Headphones,
-  Trophy, Settings, Users, BarChart3, Globe, UserCircle, GraduationCap, LogOut, Bot
+  Trophy, Settings, Users, BarChart3, Globe, UserCircle, GraduationCap, LogOut, Bot, Presentation
 } from "lucide-react";
 
 const studentNav = [
@@ -20,6 +20,7 @@ const studentNav = [
 const teacherNav = [
   { icon: Home, label: "Dashboard", labelAr: "لوحة التحكم", path: "/" },
   { icon: Bot, label: "AI Facilitator", labelAr: "مساعد التعلّم", path: "/ai-facilitator" },
+  { icon: Presentation, label: "Presentations", labelAr: "العروض التقديمية", path: "/presentations" },
   { icon: Users, label: "Students", labelAr: "الطلاب", path: "/students" },
   { icon: BarChart3, label: "Analytics", labelAr: "التحليلات", path: "/analytics" },
   { icon: BookOpen, label: "Assignments", labelAr: "الواجبات", path: "/assignments" },

@@ -14,6 +14,7 @@ import WritingLab from "./pages/WritingLab";
 import LectureNotes from "./pages/LectureNotes";
 import Achievements from "./pages/Achievements";
 import AIFacilitator from "./pages/AIFacilitator";
+import Presentations from "./pages/Presentations";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/homework" element={<ProtectedRoute><HomeworkUpload /></ProtectedRoute>} />
             <Route path="/writing" element={<ProtectedRoute><WritingLab /></ProtectedRoute>} />
             <Route path="/lectures" element={<ProtectedRoute><LectureNotes /></ProtectedRoute>} />
+            <Route path="/presentations" element={<ProtectedRoute><Presentations /></ProtectedRoute>} />
             <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
