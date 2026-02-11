@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useAppContext } from "@/contexts/AppContext";
+import SkillGroups from "@/components/SkillGroups";
 import {
   Mic2, PenLine, Presentation, Brain, MessageSquare, BookOpen,
   Users, Timer, Target, Sparkles, ChevronRight, Play
@@ -238,12 +239,14 @@ const SkillsHub = () => {
                       className={`mt-5 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-white/10 hover:bg-white/15 text-foreground transition-all`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Future: navigate to skill detail/practice page
                       }}
                     >
                       <Play className="w-3.5 h-3.5" />
                       {isAr ? "ابدأ التعلم" : "Start Learning"}
                     </button>
+
+                    {/* Practice Groups */}
+                    <SkillGroups skillId={skill.id} accent={skill.accent} />
                   </div>
                 )}
               </div>
