@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
@@ -37,6 +37,16 @@ const surahOptions = [
   { number: 114, name: "An-Nas", nameAr: "الناس", verses: 6 },
 ];
 
+// Secure audio player that uses signed URLs
+const SecureAudioPlayer = ({ filePath, getSignedUrl }: { filePath: string; getSignedUrl: (path: string) => Promise<string> }) => {
+  const [src, setSrc] = useState<string>("");
+  useEffect(() => {
+    getSignedUrl(filePath).then(setSrc);
+  }, [filePath, getSignedUrl]);
+  if (!src) return <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />;
+  return <audio controls src={src} className="h-8" />;
+};
+
 interface Assignment {
   id: string;
   teacher_id: string;
@@ -67,6 +77,7 @@ const QuranAssignments = () => {
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [submissions, setSubmissions] = useState<Record<string, Submission[]>>({});
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   // Teacher form
@@ -83,6 +94,24 @@ const QuranAssignments = () => {
   const [submitting, setSubmitting] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+
+  // Generate signed URL on-demand for secure audio playback
+  const getSignedAudioUrl = useCallback(async (filePath: string): Promise<string> => {
+    // If it's already a full URL (legacy data), return as-is
+    if (filePath.startsWith("http")) return filePath;
+    
+    if (signedUrls[filePath]) return signedUrls[filePath];
+    
+    const { data, error } = await supabase.storage
+      .from("recordings")
+      .createSignedUrl(filePath, 3600); // 1 hour
+    
+    if (data?.signedUrl) {
+      setSignedUrls(prev => ({ ...prev, [filePath]: data.signedUrl }));
+      return data.signedUrl;
+    }
+    return "";
+  }, [signedUrls]);
 
   useEffect(() => {
     if (user) fetchAssignments();
@@ -177,12 +206,21 @@ const QuranAssignments = () => {
         return;
       }
 
-      const { data: urlData } = supabase.storage.from("recordings").getPublicUrl(fileName);
+      // Use signed URL for privacy — expires in 4 hours
+      const { data: urlData, error: urlErr } = await supabase.storage
+        .from("recordings")
+        .createSignedUrl(fileName, 14400); // 4 hours
+
+      if (urlErr || !urlData?.signedUrl) {
+        toast({ title: "Error", description: urlErr?.message || "Could not generate secure URL", variant: "destructive" });
+        setSubmitting(false);
+        return;
+      }
 
       const { error: insertErr } = await supabase.from("assignment_submissions").insert({
         assignment_id: recordingFor,
         student_id: user.id,
-        audio_url: urlData.publicUrl,
+        audio_url: fileName, // Store the file path, not the URL
       });
 
       if (insertErr) {
@@ -414,7 +452,7 @@ const QuranAssignments = () => {
                       {mySubs.map((s) => (
                         <div key={s.id} className="flex items-center justify-between bg-slate-700/30 rounded-xl px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <audio controls src={s.audio_url} className="h-8" />
+                            <SecureAudioPlayer filePath={s.audio_url} getSignedUrl={getSignedAudioUrl} />
                             <span className="text-xs text-slate-400">
                               {new Date(s.submitted_at).toLocaleDateString()}
                             </span>

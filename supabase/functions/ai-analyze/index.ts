@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,12 +13,62 @@ serve(async (req) => {
   }
 
   try {
-    const { action, text, language } = await req.json();
+    // ── Authentication ──
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Input Validation ──
+    const body = await req.json();
+    const { action, text, language } = body;
+
+    if (!action || !text || typeof text !== "string") {
+      return new Response(
+        JSON.stringify({ error: "Missing or invalid parameters" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const validActions = ["grammar-check", "ocr-analyze", "lecture-notes", "tajweed-check"];
+    if (!validActions.includes(action)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid action" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (text.length > 10000) {
+      return new Response(
+        JSON.stringify({ error: "Text too long (max 10,000 characters)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── AI Processing ──
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    let systemPrompt = "";
     const lang = language === "ar" ? "Arabic" : "English";
+    let systemPrompt = "";
 
     switch (action) {
       case "grammar-check":
@@ -68,12 +119,6 @@ Only return valid JSON, no markdown.`;
 }
 Only return valid JSON, no markdown.`;
         break;
-
-      default:
-        return new Response(JSON.stringify({ error: "Unknown action" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
     }
 
     const response = await fetch(
@@ -107,8 +152,7 @@ Only return valid JSON, no markdown.`;
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const errText = await response.text();
-      console.error("AI gateway error:", response.status, errText);
+      console.error("AI gateway error:", response.status);
       return new Response(
         JSON.stringify({ error: "AI analysis failed" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -118,10 +162,8 @@ Only return valid JSON, no markdown.`;
     const aiResult = await response.json();
     const content = aiResult.choices?.[0]?.message?.content || "";
 
-    // Parse the JSON from the AI response
     let parsed;
     try {
-      // Try to extract JSON from the response (handle possible markdown wrapping)
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
     } catch {
@@ -134,7 +176,7 @@ Only return valid JSON, no markdown.`;
   } catch (e) {
     console.error("ai-analyze error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
