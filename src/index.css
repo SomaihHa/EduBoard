@@ -70,35 +70,38 @@
   }
 
   .dark {
-    --background: 220 25% 8%;
-    --foreground: 40 20% 92%;
-    --card: 220 25% 12%;
-    --card-foreground: 40 20% 92%;
-    --popover: 220 25% 12%;
-    --popover-foreground: 40 20% 92%;
-    --primary: 210 60% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 160 40% 50%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 220 20% 18%;
-    --muted-foreground: 220 15% 60%;
-    --accent: 35 70% 55%;
-    --accent-foreground: 30 60% 95%;
+    --background: 160 10% 6%;
+    --foreground: 60 10% 92%;
+    --card: 160 10% 9%;
+    --card-foreground: 60 10% 92%;
+    --popover: 160 10% 9%;
+    --popover-foreground: 60 10% 92%;
+    --primary: 75 80% 60%;
+    --primary-foreground: 160 10% 6%;
+    --secondary: 160 30% 18%;
+    --secondary-foreground: 60 10% 92%;
+    --muted: 160 10% 14%;
+    --muted-foreground: 160 10% 55%;
+    --accent: 75 80% 60%;
+    --accent-foreground: 160 10% 6%;
     --destructive: 0 60% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 22%;
-    --input: 220 20% 22%;
-    --ring: 210 60% 60%;
-    --sidebar-background: 220 30% 8%;
-    --sidebar-foreground: 210 20% 85%;
-    --sidebar-primary: 210 60% 65%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 25% 15%;
-    --sidebar-accent-foreground: 210 20% 85%;
-    --sidebar-border: 220 25% 15%;
-    --sidebar-ring: 210 60% 65%;
-    --sand: 38 25% 20%;
-    --mint: 160 25% 15%;
+    --border: 160 10% 16%;
+    --input: 160 10% 16%;
+    --ring: 75 80% 60%;
+    --sidebar-background: 160 12% 5%;
+    --sidebar-foreground: 160 10% 75%;
+    --sidebar-primary: 75 80% 60%;
+    --sidebar-primary-foreground: 160 10% 6%;
+    --sidebar-accent: 160 10% 12%;
+    --sidebar-accent-foreground: 160 10% 80%;
+    --sidebar-border: 160 10% 12%;
+    --sidebar-ring: 75 80% 60%;
+    --sand: 75 15% 14%;
+    --mint: 160 20% 12%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(75 80% 60%), hsl(140 60% 45%));
+    --gradient-sidebar: linear-gradient(180deg, hsl(160 12% 5%), hsl(160 15% 3%));
   }
 }
 
