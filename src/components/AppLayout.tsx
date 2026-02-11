@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { NotificationBell } from "@/components/NotificationBell";
+import { AIChatWidget } from "@/components/AIChatWidget";
 import { useAppContext } from "@/contexts/AppContext";
 
 export const AppLayout = ({ children }: { children: ReactNode }) => {
@@ -22,6 +23,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
           {children}
         </div>
       </main>
+      <AIChatWidget />
     </div>
   );
 };
