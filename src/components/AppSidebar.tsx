@@ -29,6 +29,7 @@ const teacherNav = [
   { icon: Bot, label: "AI Facilitator", labelAr: "مساعد التعلّم", path: "/ai-facilitator" },
   { icon: Presentation, label: "Presentations", labelAr: "العروض التقديمية", path: "/presentations" },
   { icon: BookOpen, label: "Quran Assignments", labelAr: "واجبات القرآن", path: "/quran" },
+  { icon: Users, label: "My Students", labelAr: "طلابي", path: "/students" },
   { icon: Users, label: "Class Management", labelAr: "إدارة الفصول", path: "/classes" },
   { icon: BarChart3, label: "Analytics", labelAr: "التحليلات", path: "/analytics" },
   { icon: Camera, label: "Submissions", labelAr: "التسليمات", path: "/submissions" },

@@ -8,6 +8,10 @@ import { SidebarStateProvider } from "@/contexts/SidebarContext";
 import { useAuth } from "@/hooks/useAuth";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import TeacherStudents from "./pages/TeacherStudents";
+import TeacherSubmissions from "./pages/TeacherSubmissions";
+import TeacherSettings from "./pages/TeacherSettings";
+import TeacherAnalytics from "./pages/TeacherAnalytics";
 import PracticeRoom from "./pages/PracticeRoom";
 import QuranAssignments from "./pages/QuranAssignments";
 import HomeworkUpload from "./pages/HomeworkUpload";
@@ -19,7 +23,6 @@ import Presentations from "./pages/Presentations";
 import SkillsHub from "./pages/SkillsHub";
 import ClassManagement from "./pages/ClassManagement";
 import AuthPage from "./pages/AuthPage";
-import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -34,7 +37,6 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode;
   );
   if (!user) return <Navigate to="/auth" replace />;
   
-  // If role-restricted and user's role doesn't match, redirect to home
   if (allowedRoles && role && !allowedRoles.includes(role)) {
     return <Navigate to="/" replace />;
   }
@@ -45,6 +47,12 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode;
 const DashboardRouter = () => {
   const { role } = useAppContext();
   return role === "teacher" ? <TeacherDashboard /> : <StudentDashboard />;
+};
+
+const TeacherFallback = () => {
+  const { role } = useAppContext();
+  if (role !== "teacher") return <Navigate to="/" replace />;
+  return <Navigate to="/" replace />;
 };
 
 const App = () => (
@@ -68,11 +76,15 @@ const App = () => (
             <Route path="/achievements" element={<ProtectedRoute allowedRoles={["student"]}><Achievements /></ProtectedRoute>} />
             {/* Shared routes */}
             <Route path="/quran" element={<ProtectedRoute><QuranAssignments /></ProtectedRoute>} />
-            {/* Class management - both roles */}
             <Route path="/classes" element={<ProtectedRoute><ClassManagement /></ProtectedRoute>} />
             {/* Teacher-only routes */}
             <Route path="/presentations" element={<ProtectedRoute allowedRoles={["teacher"]}><Presentations /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
+            <Route path="/students" element={<ProtectedRoute allowedRoles={["teacher"]}><TeacherStudents /></ProtectedRoute>} />
+            <Route path="/submissions" element={<ProtectedRoute allowedRoles={["teacher"]}><TeacherSubmissions /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute allowedRoles={["teacher"]}><TeacherSettings /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute allowedRoles={["teacher"]}><TeacherAnalytics /></ProtectedRoute>} />
+            {/* Catch-all: redirect to home instead of 404 */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
         </SidebarStateProvider>
