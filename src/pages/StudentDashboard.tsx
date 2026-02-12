@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 
 const quickActions = [
   { icon: Mic, label: "Practice Room", labelAr: "غرفة التمرين", path: "/practice", color: "bg-gradient-primary" },
-  { icon: BookOpen, label: "Quran Recitation", labelAr: "تلاوة القرآن", path: "/quran", color: "bg-gradient-success" },
+  { icon: BookOpen, label: "Assignments", labelAr: "الواجبات", path: "/assignments", color: "bg-gradient-success" },
   { icon: Camera, label: "Scan Homework", labelAr: "مسح الواجب", path: "/homework", color: "bg-gradient-warm" },
   { icon: PenTool, label: "Writing Lab", labelAr: "مختبر الكتابة", path: "/writing", color: "bg-gradient-primary" },
 ];
