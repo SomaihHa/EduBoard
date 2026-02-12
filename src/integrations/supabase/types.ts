@@ -91,6 +91,54 @@ export type Database = {
         }
         Relationships: []
       }
+      presentations: {
+        Row: {
+          created_at: string
+          duration: string
+          grade_level: string
+          id: string
+          language: string
+          slides: Json
+          speaker_notes: Json
+          status: string
+          subject: string
+          teacher_id: string
+          title: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration?: string
+          grade_level?: string
+          id?: string
+          language?: string
+          slides?: Json
+          speaker_notes?: Json
+          status?: string
+          subject?: string
+          teacher_id: string
+          title: string
+          topic?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration?: string
+          grade_level?: string
+          id?: string
+          language?: string
+          slides?: Json
+          speaker_notes?: Json
+          status?: string
+          subject?: string
+          teacher_id?: string
+          title?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
