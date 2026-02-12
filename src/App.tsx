@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider, useAppContext } from "@/contexts/AppContext";
+import { SidebarStateProvider } from "@/contexts/SidebarContext";
 import { useAuth } from "@/hooks/useAuth";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
@@ -51,6 +52,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AppProvider>
+        <SidebarStateProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
@@ -70,6 +72,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </SidebarStateProvider>
       </AppProvider>
     </TooltipProvider>
   </QueryClientProvider>
