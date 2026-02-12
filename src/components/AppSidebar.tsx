@@ -3,7 +3,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import {
-  BookOpen, Home, Mic, Camera, PenTool, Headphones,
+  BookOpen, Home, Mic, Camera, PenTool, Headphones, BrainCircuit,
   Trophy, Settings, Users, BarChart3, Globe, LogOut, Bot, Presentation, Moon, Sun, Sparkles,
   Menu, ChevronLeft, X
 } from "lucide-react";
@@ -13,7 +13,7 @@ import { useSidebarState } from "@/contexts/SidebarContext";
 
 const studentNav = [
   { icon: Home, label: "Dashboard", labelAr: "لوحة التحكم", path: "/" },
-  { icon: Bot, label: "AI Facilitator", labelAr: "مساعد التعلّم", path: "/ai-facilitator" },
+  { icon: BrainCircuit, label: "AI Facilitator", labelAr: "مساعد التعلّم", path: "/ai-facilitator" },
   { icon: Mic, label: "Practice Room", labelAr: "غرفة التمرين", path: "/practice" },
   { icon: BookOpen, label: "Quran Practice", labelAr: "تلاوة القرآن", path: "/quran" },
   { icon: Camera, label: "Homework Scan", labelAr: "مسح الواجبات", path: "/homework" },
@@ -26,7 +26,7 @@ const studentNav = [
 
 const teacherNav = [
   { icon: Home, label: "Dashboard", labelAr: "لوحة التحكم", path: "/" },
-  { icon: Bot, label: "AI Facilitator", labelAr: "مساعد التعلّم", path: "/ai-facilitator" },
+  { icon: BrainCircuit, label: "AI Facilitator", labelAr: "مساعد التعلّم", path: "/ai-facilitator" },
   { icon: Presentation, label: "Presentations", labelAr: "العروض التقديمية", path: "/presentations" },
   { icon: BookOpen, label: "Quran Assignments", labelAr: "واجبات القرآن", path: "/quran" },
   { icon: Users, label: "My Students", labelAr: "طلابي", path: "/students" },
