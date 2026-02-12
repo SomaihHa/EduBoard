@@ -17,6 +17,7 @@ import Achievements from "./pages/Achievements";
 import AIFacilitator from "./pages/AIFacilitator";
 import Presentations from "./pages/Presentations";
 import SkillsHub from "./pages/SkillsHub";
+import ClassManagement from "./pages/ClassManagement";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -67,6 +68,8 @@ const App = () => (
             <Route path="/achievements" element={<ProtectedRoute allowedRoles={["student"]}><Achievements /></ProtectedRoute>} />
             {/* Shared routes */}
             <Route path="/quran" element={<ProtectedRoute><QuranAssignments /></ProtectedRoute>} />
+            {/* Class management - both roles */}
+            <Route path="/classes" element={<ProtectedRoute><ClassManagement /></ProtectedRoute>} />
             {/* Teacher-only routes */}
             <Route path="/presentations" element={<ProtectedRoute allowedRoles={["teacher"]}><Presentations /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
