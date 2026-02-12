@@ -75,7 +75,9 @@ const App = () => (
             <Route path="/skills" element={<ProtectedRoute allowedRoles={["student"]}><SkillsHub /></ProtectedRoute>} />
             <Route path="/achievements" element={<ProtectedRoute allowedRoles={["student"]}><Achievements /></ProtectedRoute>} />
             {/* Shared routes */}
-            <Route path="/quran" element={<ProtectedRoute><QuranAssignments /></ProtectedRoute>} />
+            <Route path="/assignments" element={<ProtectedRoute><QuranAssignments /></ProtectedRoute>} />
+            {/* Legacy route redirect */}
+            <Route path="/quran" element={<Navigate to="/assignments" replace />} />
             <Route path="/classes" element={<ProtectedRoute><ClassManagement /></ProtectedRoute>} />
             {/* Teacher-only routes */}
             <Route path="/presentations" element={<ProtectedRoute allowedRoles={["teacher"]}><Presentations /></ProtectedRoute>} />

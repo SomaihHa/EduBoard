@@ -17,31 +17,37 @@ export type Database = {
       assignment_submissions: {
         Row: {
           assignment_id: string
-          audio_url: string
+          audio_url: string | null
           id: string
           reviewed_at: string | null
           status: string
           student_id: string
+          submission_image_url: string | null
+          submission_text: string | null
           submitted_at: string
           teacher_feedback: string | null
         }
         Insert: {
           assignment_id: string
-          audio_url: string
+          audio_url?: string | null
           id?: string
           reviewed_at?: string | null
           status?: string
           student_id: string
+          submission_image_url?: string | null
+          submission_text?: string | null
           submitted_at?: string
           teacher_feedback?: string | null
         }
         Update: {
           assignment_id?: string
-          audio_url?: string
+          audio_url?: string | null
           id?: string
           reviewed_at?: string | null
           status?: string
           student_id?: string
+          submission_image_url?: string | null
+          submission_text?: string | null
           submitted_at?: string
           teacher_feedback?: string | null
         }
@@ -165,6 +171,7 @@ export type Database = {
       }
       quran_assignments: {
         Row: {
+          assignment_type: string
           ayah_from: number
           ayah_to: number
           created_at: string
@@ -177,6 +184,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assignment_type?: string
           ayah_from?: number
           ayah_to: number
           created_at?: string
@@ -189,6 +197,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assignment_type?: string
           ayah_from?: number
           ayah_to?: number
           created_at?: string
