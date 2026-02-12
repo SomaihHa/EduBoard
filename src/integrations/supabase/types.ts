@@ -55,6 +55,42 @@ export type Database = {
           },
         ]
       }
+      class_invitations: {
+        Row: {
+          class_name: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          invite_code: string
+          is_active: boolean
+          max_uses: number | null
+          teacher_id: string
+          use_count: number
+        }
+        Insert: {
+          class_name?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          invite_code: string
+          is_active?: boolean
+          max_uses?: number | null
+          teacher_id: string
+          use_count?: number
+        }
+        Update: {
+          class_name?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          invite_code?: string
+          is_active?: boolean
+          max_uses?: number | null
+          teacher_id?: string
+          use_count?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -219,6 +255,30 @@ export type Database = {
         }
         Relationships: []
       }
+      teacher_students: {
+        Row: {
+          class_name: string | null
+          created_at: string
+          id: string
+          student_id: string
+          teacher_id: string
+        }
+        Insert: {
+          class_name?: string | null
+          created_at?: string
+          id?: string
+          student_id: string
+          teacher_id: string
+        }
+        Update: {
+          class_name?: string | null
+          created_at?: string
+          id?: string
+          student_id?: string
+          teacher_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -245,6 +305,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_invite_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
