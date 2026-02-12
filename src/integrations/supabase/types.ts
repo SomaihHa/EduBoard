@@ -97,6 +97,33 @@ export type Database = {
         }
         Relationships: []
       }
+      presentation_logos: {
+        Row: {
+          created_at: string
+          id: string
+          is_preset: boolean
+          name: string
+          storage_path: string
+          teacher_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_preset?: boolean
+          name: string
+          storage_path: string
+          teacher_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_preset?: boolean
+          name?: string
+          storage_path?: string
+          teacher_id?: string
+        }
+        Relationships: []
+      }
       presentations: {
         Row: {
           created_at: string
