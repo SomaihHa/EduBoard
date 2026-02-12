@@ -9,7 +9,7 @@ import {
   Presentation, ChevronLeft, ChevronRight, Play, Maximize2, Minimize2,
   FileText, Loader2, Lightbulb, BookOpen, HelpCircle, Download, Plus,
   Sparkles, Trash2, Save, Edit3, MessageSquare, ArrowUp, ArrowDown,
-  Palette, GraduationCap, Moon, Baby, Check, Settings2
+  Palette, GraduationCap, Moon, Baby, Check, Settings2, Image, Upload, X
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -217,6 +217,38 @@ const TEMPLATES: SlideTemplate[] = [
 
 const getTemplate = (id?: string): SlideTemplate => TEMPLATES.find(t => t.id === id) || TEMPLATES[0];
 
+// ─── Logo System ────────────────────────────────────────────────
+
+interface LogoConfig {
+  url: string;
+  name: string;
+  position: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center-top";
+  size: number; // percentage 5-25
+  opacity: number; // 0.1-1
+  applyTo: "all" | "title-only" | "custom";
+  customSlides?: number[];
+}
+
+interface SavedLogo {
+  id: string;
+  name: string;
+  url: string;
+  is_preset: boolean;
+}
+
+const PRESET_LOGOS: { name: string; nameAr: string; url: string }[] = [
+  { name: "King Abdulaziz University", nameAr: "جامعة الملك عبدالعزيز", url: "https://kxmgqdorgsqamzhblssx.supabase.co/storage/v1/object/public/presentation-logos/presets/kau-logo.jpeg" },
+  { name: "Ministry of Education", nameAr: "وزارة التعليم", url: "https://kxmgqdorgsqamzhblssx.supabase.co/storage/v1/object/public/presentation-logos/presets/moe-logo.jpeg" },
+];
+
+const LOGO_POSITIONS: { id: LogoConfig["position"]; label: string; labelAr: string }[] = [
+  { id: "top-left", label: "Top Left", labelAr: "أعلى اليسار" },
+  { id: "top-right", label: "Top Right", labelAr: "أعلى اليمين" },
+  { id: "bottom-left", label: "Bottom Left", labelAr: "أسفل اليسار" },
+  { id: "bottom-right", label: "Bottom Right", labelAr: "أسفل اليمين" },
+  { id: "center-top", label: "Center Top", labelAr: "أعلى الوسط" },
+];
+
 // ─── Slide Type Icons ───────────────────────────────────────────
 
 const SLIDE_TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -233,13 +265,21 @@ const SLIDE_TYPE_ICONS: Record<string, React.ReactNode> = {
 
 // ─── PPT Export ─────────────────────────────────────────────────
 
-function exportPresentationToPPT(pres: { title: string; slides: PresentationSlide[] }, isAr: boolean, template: SlideTemplate) {
+function exportPresentationToPPT(pres: { title: string; slides: PresentationSlide[] }, isAr: boolean, template: SlideTemplate, logo?: LogoConfig | null) {
   const pptx = new PptxGenJS();
   pptx.author = "EduBoard";
   pptx.title = pres.title;
   pptx.layout = "LAYOUT_WIDE";
 
-  pres.slides.forEach((slide) => {
+  const logoPositionMap: Record<string, { x: number; y: number }> = {
+    "top-left": { x: 0.3, y: 0.2 },
+    "top-right": { x: 11.5, y: 0.2 },
+    "bottom-left": { x: 0.3, y: 6.5 },
+    "bottom-right": { x: 11.5, y: 6.5 },
+    "center-top": { x: 5.8, y: 0.2 },
+  };
+
+  pres.slides.forEach((slide, idx) => {
     const colors = template.pptColors[slide.type] || template.pptColors.content;
     const s = pptx.addSlide();
     s.background = { color: colors.bg };
@@ -254,14 +294,26 @@ function exportPresentationToPPT(pres: { title: string; slides: PresentationSlid
       align: isAr ? "right" : "left",
     });
 
-    slide.bullets.forEach((bullet, idx) => {
+    slide.bullets.forEach((bullet, bIdx) => {
       const yStart = slide.type === "title" ? 3.2 : 1.6;
       s.addText(slide.type === "title" ? bullet : `• ${bullet}`, {
-        x: 0.8, y: yStart + idx * 0.8, w: "85%", h: 0.7,
+        x: 0.8, y: yStart + bIdx * 0.8, w: "85%", h: 0.7,
         fontSize: slide.type === "title" ? 18 : 16, color: slide.type === "title" ? colors.accent : "4a5568",
         align: isAr ? "right" : "left",
       });
     });
+
+    // Add logo if configured
+    if (logo) {
+      const showOnSlide = logo.applyTo === "all" || (logo.applyTo === "title-only" && slide.type === "title") || (logo.applyTo === "custom" && logo.customSlides?.includes(idx));
+      if (showOnSlide) {
+        const pos = logoPositionMap[logo.position] || logoPositionMap["top-right"];
+        const sizeInches = (logo.size / 100) * 13.33; // relative to slide width
+        try {
+          s.addImage({ path: logo.url, x: pos.x, y: pos.y, w: sizeInches, h: sizeInches, transparency: Math.round((1 - logo.opacity) * 100) });
+        } catch { /* logo fetch may fail in export, skip silently */ }
+      }
+    }
 
     if (slide.notes) s.addNotes(slide.notes);
   });
@@ -330,10 +382,17 @@ const Presentations = () => {
   const [editorTemplateId, setEditorTemplateId] = useState("classic");
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
+  // Logo state
+  const [logoConfig, setLogoConfig] = useState<LogoConfig | null>(null);
+  const [showLogoPanel, setShowLogoPanel] = useState(false);
+  const [savedLogos, setSavedLogos] = useState<SavedLogo[]>([]);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
   // Present mode
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Notes-based present
   const [noteSlides, setNoteSlides] = useState<PresentationSlide[]>([]);
@@ -341,6 +400,20 @@ const Presentations = () => {
   const activeTemplate = getTemplate(view === "editor" ? editorTemplateId : selectedTemplateId);
 
   // ─── Data fetching ───────────────────────────
+
+  const fetchLogos = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("presentation_logos").select("*").order("created_at", { ascending: false });
+    if (data) {
+      const logos: SavedLogo[] = data.map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        url: supabase.storage.from("presentation-logos").getPublicUrl(d.storage_path).data.publicUrl,
+        is_preset: d.is_preset,
+      }));
+      setSavedLogos(logos);
+    }
+  };
 
   const fetchData = async () => {
     if (!user) return;
@@ -354,7 +427,7 @@ const Presentations = () => {
     setLoading(false);
   };
 
-  useEffect(() => { if (user) fetchData(); }, [user]);
+  useEffect(() => { if (user) { fetchData(); fetchLogos(); } }, [user]);
 
   // ─── AI Generation ───────────────────────────
 
@@ -461,13 +534,57 @@ const Presentations = () => {
     if (editingSlideIdx === idx) setEditingSlideIdx(newIdx);
   };
 
+  // ─── Logo Upload ────────────────────────────
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (!file.type.match(/^image\/(png|jpeg|jpg|svg\+xml)$/)) {
+      toast({ title: isAr ? "صيغة غير مدعومة" : "Unsupported format", description: "PNG, JPG, SVG only", variant: "destructive" });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: isAr ? "الملف كبير جداً" : "File too large", description: "Max 2MB", variant: "destructive" });
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("presentation-logos").upload(path, file);
+      if (upErr) throw upErr;
+      const { error: dbErr } = await supabase.from("presentation_logos").insert({
+        teacher_id: user.id, name: file.name.replace(/\.[^/.]+$/, ""), storage_path: path,
+      } as any);
+      if (dbErr) throw dbErr;
+      const url = supabase.storage.from("presentation-logos").getPublicUrl(path).data.publicUrl;
+      setLogoConfig({ url, name: file.name, position: "top-right", size: 10, opacity: 1, applyTo: "all" });
+      fetchLogos();
+      toast({ title: isAr ? "تم رفع الشعار" : "Logo uploaded!" });
+    } catch (err: any) {
+      toast({ title: isAr ? "خطأ" : "Error", description: err.message, variant: "destructive" });
+    } finally { setUploadingLogo(false); if (logoInputRef.current) logoInputRef.current.value = ""; }
+  };
+
+  const selectLogo = (url: string, name: string) => {
+    setLogoConfig(prev => prev ? { ...prev, url, name } : { url, name, position: "top-right", size: 10, opacity: 1, applyTo: "all" });
+  };
+
+  const shouldShowLogo = (slideIdx: number) => {
+    if (!logoConfig) return false;
+    if (logoConfig.applyTo === "all") return true;
+    if (logoConfig.applyTo === "title-only") return editSlides[slideIdx]?.type === "title";
+    if (logoConfig.applyTo === "custom") return logoConfig.customSlides?.includes(slideIdx) ?? false;
+    return false;
+  };
+
   // ─── PPT Export ──────────────────────────────
 
   const handleExportPPT = async (title: string, slides: PresentationSlide[], templateId?: string) => {
     setExporting(true);
     try {
       const tmpl = getTemplate(templateId);
-      const pptx = exportPresentationToPPT({ title, slides }, isAr, tmpl);
+      const pptx = exportPresentationToPPT({ title, slides }, isAr, tmpl, logoConfig);
       await pptx.writeFile({ fileName: `${title.replace(/[^a-zA-Z0-9\u0600-\u06FF ]/g, "")}.pptx` });
       toast({ title: isAr ? "تم التحميل" : "Downloaded!" });
     } catch (err: any) {
@@ -519,7 +636,7 @@ const Presentations = () => {
   // RENDER HELPERS
   // ═══════════════════════════════════════════════════════════════
 
-  const renderSlidePreview = (slide: PresentationSlide, template: SlideTemplate, isRtl: boolean, isFull = false) => {
+  const renderSlidePreview = (slide: PresentationSlide, template: SlideTemplate, isRtl: boolean, isFull = false, slideIdx?: number) => {
     const gradient = template.slideGradients[slide.type] || template.slideGradients.content;
     const isTitleSlide = slide.type === "title";
     const fontCls = template.id === "islamic" ? "font-arabic" : "";
@@ -528,11 +645,30 @@ const Presentations = () => {
       ? (template.id === "kids" ? "text-4xl md:text-6xl" : "text-3xl md:text-5xl")
       : (template.id === "kids" ? "text-2xl md:text-4xl" : "text-2xl md:text-3xl");
 
+    const showLogo = logoConfig && (slideIdx !== undefined ? shouldShowLogo(slideIdx) : true);
+
+    const logoPositionClasses: Record<string, string> = {
+      "top-left": "top-3 left-3",
+      "top-right": "top-3 right-3",
+      "bottom-left": "bottom-3 left-3",
+      "bottom-right": "bottom-3 right-3",
+      "center-top": "top-3 left-1/2 -translate-x-1/2",
+    };
+
     return (
       <div
-        className={`bg-gradient-to-br ${gradient} rounded-2xl shadow-card border border-border flex flex-col items-center justify-center ${isFull ? "min-h-[400px]" : "min-h-[200px]"} ${isFull ? "p-8 md:p-16" : "p-6"} ${fontCls} cursor-pointer select-none`}
+        className={`relative bg-gradient-to-br ${gradient} rounded-2xl shadow-card border border-border flex flex-col items-center justify-center ${isFull ? "min-h-[400px]" : "min-h-[200px]"} ${isFull ? "p-8 md:p-16" : "p-6"} ${fontCls} cursor-pointer select-none`}
         dir={isRtl ? "rtl" : "ltr"}
       >
+        {/* Logo overlay */}
+        {showLogo && logoConfig && (
+          <img
+            src={logoConfig.url}
+            alt={logoConfig.name}
+            className={`absolute ${logoPositionClasses[logoConfig.position] || "top-3 right-3"} object-contain pointer-events-none`}
+            style={{ width: `${logoConfig.size}%`, opacity: logoConfig.opacity }}
+          />
+        )}
         {isTitleSlide ? (
           <div className="text-center max-w-2xl">
             <Presentation className="w-12 h-12 mx-auto mb-6 opacity-50" style={{ color: template.colors.primary }} />
@@ -589,7 +725,7 @@ const Presentations = () => {
             <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
           <div className={`flex-1 ${isFullscreen ? "min-h-[calc(100vh-10rem)]" : ""}`} onClick={nextSlide}>
-            {renderSlidePreview(slide, tmpl, isAr, true)}
+            {renderSlidePreview(slide, tmpl, isAr, true, currentSlide)}
           </div>
           <div className="flex items-center justify-center gap-4 mt-4">
             <button onClick={prevSlide} disabled={currentSlide === 0} className="p-3 rounded-xl bg-card shadow-card border border-border hover:bg-muted transition-colors disabled:opacity-30">
@@ -841,11 +977,106 @@ const Presentations = () => {
                 {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                 PPT
               </button>
+              <button onClick={() => setShowLogoPanel(!showLogoPanel)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${logoConfig ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-muted text-foreground hover:bg-muted/80"}`}>
+                <Image className="w-3.5 h-3.5" /> {isAr ? "شعار" : "Logo"}
+              </button>
               <button onClick={startPresent} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/90">
                 <Play className="w-3.5 h-3.5" /> {isAr ? "عرض" : "Present"}
               </button>
             </div>
           </div>
+
+          {/* Logo Panel */}
+          {showLogoPanel && (
+            <div className="bg-card rounded-xl shadow-card border border-border p-4 mb-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Image className="w-4 h-4 text-primary" /> {isAr ? "شعار العرض التقديمي" : "Presentation Logo"}
+                </h3>
+                <div className="flex items-center gap-2">
+                  {logoConfig && (
+                    <button onClick={() => setLogoConfig(null)} className="text-xs text-destructive hover:text-destructive/80 flex items-center gap-1">
+                      <X className="w-3 h-3" /> {isAr ? "إزالة" : "Remove"}
+                    </button>
+                  )}
+                  <button onClick={() => setShowLogoPanel(false)} className="p-1 rounded hover:bg-muted"><X className="w-4 h-4 text-muted-foreground" /></button>
+                </div>
+              </div>
+
+              {/* Upload + Presets */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">{isAr ? "رفع شعار" : "Upload Logo"}</p>
+                  <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={handleLogoUpload} className="hidden" />
+                  <button onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-border hover:border-primary/50 text-xs text-muted-foreground hover:text-primary transition-colors disabled:opacity-50">
+                    {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    {isAr ? "PNG, JPG, SVG" : "PNG, JPG, SVG"}
+                  </button>
+                  {/* Saved logos */}
+                  {savedLogos.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      <p className="text-[10px] text-muted-foreground">{isAr ? "شعاراتي" : "My Logos"}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {savedLogos.map(l => (
+                          <button key={l.id} onClick={() => selectLogo(l.url, l.name)}
+                            className={`w-12 h-12 rounded-lg border-2 overflow-hidden transition-all ${logoConfig?.url === l.url ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40"}`}>
+                            <img src={l.url} alt={l.name} className="w-full h-full object-contain p-1" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">{isAr ? "شعارات رسمية" : "Official Logos"}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {PRESET_LOGOS.map((pl, i) => (
+                      <button key={i} onClick={() => selectLogo(pl.url, isAr ? pl.nameAr : pl.name)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all ${logoConfig?.url === pl.url ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
+                        <img src={pl.url} alt={pl.name} className="w-8 h-8 object-contain" />
+                        <span className="text-xs text-foreground">{isAr ? pl.nameAr : pl.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Placement controls */}
+              {logoConfig && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-border">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">{isAr ? "الموضع" : "Position"}</label>
+                    <select value={logoConfig.position} onChange={e => setLogoConfig({ ...logoConfig, position: e.target.value as LogoConfig["position"] })}
+                      className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs">
+                      {LOGO_POSITIONS.map(p => <option key={p.id} value={p.id}>{isAr ? p.labelAr : p.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">{isAr ? "الحجم" : "Size"}: {logoConfig.size}%</label>
+                    <input type="range" min={5} max={25} value={logoConfig.size} onChange={e => setLogoConfig({ ...logoConfig, size: Number(e.target.value) })}
+                      className="w-full mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">{isAr ? "الشفافية" : "Opacity"}: {Math.round(logoConfig.opacity * 100)}%</label>
+                    <input type="range" min={10} max={100} value={logoConfig.opacity * 100} onChange={e => setLogoConfig({ ...logoConfig, opacity: Number(e.target.value) / 100 })}
+                      className="w-full mt-1" />
+                  </div>
+                  <div className="md:col-span-3">
+                    <label className="text-xs font-medium text-muted-foreground">{isAr ? "تطبيق على" : "Apply To"}</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      {(["all", "title-only", "custom"] as const).map(opt => (
+                        <button key={opt} onClick={() => setLogoConfig({ ...logoConfig, applyTo: opt })}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${logoConfig.applyTo === opt ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/80"}`}>
+                          {opt === "all" ? (isAr ? "كل الشرائح" : "All Slides") : opt === "title-only" ? (isAr ? "شريحة العنوان فقط" : "Title Only") : (isAr ? "مخصص" : "Custom")}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Title */}
           <input value={editTitle} onChange={e => setEditTitle(e.target.value)}
@@ -940,7 +1171,7 @@ const Presentations = () => {
                   </div>
 
                   {/* Template-aware preview */}
-                  {renderSlidePreview(editSlides[editingSlideIdx], tmpl, editingPres.language === "ar")}
+                  {renderSlidePreview(editSlides[editingSlideIdx], tmpl, editingPres.language === "ar", false, editingSlideIdx)}
                 </div>
               ) : (
                 <div className="bg-card rounded-xl shadow-card border border-border p-12 text-center text-muted-foreground text-sm">
