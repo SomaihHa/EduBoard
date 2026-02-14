@@ -20,6 +20,7 @@ import LectureNotes from "./pages/LectureNotes";
 import Achievements from "./pages/Achievements";
 import AIFacilitator from "./pages/AIFacilitator";
 import Presentations from "./pages/Presentations";
+import PronunciationTraining from "./pages/PronunciationTraining";
 import SkillsHub from "./pages/SkillsHub";
 import ClassManagement from "./pages/ClassManagement";
 import AuthPage from "./pages/AuthPage";
@@ -76,6 +77,7 @@ const App = () => (
             <Route path="/achievements" element={<ProtectedRoute allowedRoles={["student"]}><Achievements /></ProtectedRoute>} />
             {/* Shared routes */}
             <Route path="/assignments" element={<ProtectedRoute><QuranAssignments /></ProtectedRoute>} />
+            <Route path="/pronunciation" element={<ProtectedRoute><PronunciationTraining /></ProtectedRoute>} />
             {/* Legacy route redirect */}
             <Route path="/quran" element={<Navigate to="/assignments" replace />} />
             <Route path="/classes" element={<ProtectedRoute><ClassManagement /></ProtectedRoute>} />
