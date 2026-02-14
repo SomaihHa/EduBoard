@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import {
   BookOpen, Home, Mic, Camera, PenTool, Headphones, BrainCircuit,
   Trophy, Settings, Users, BarChart3, Globe, LogOut, Bot, Presentation, Moon, Sun, Sparkles,
-  Menu, ChevronLeft, X
+  Menu, ChevronLeft, X, Volume2
 } from "lucide-react";
 import EduBoardLogo from "@/components/EduBoardLogo";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -15,6 +15,7 @@ const studentNav = [
   { icon: Home, label: "Dashboard", labelAr: "لوحة التحكم", path: "/" },
   { icon: BrainCircuit, label: "AI Facilitator", labelAr: "مساعد التعلّم", path: "/ai-facilitator" },
   { icon: Mic, label: "Practice Room", labelAr: "غرفة التمرين", path: "/practice" },
+  { icon: Volume2, label: "Pronunciation", labelAr: "تدريب النطق", path: "/pronunciation" },
   { icon: BookOpen, label: "Assignments", labelAr: "الواجبات", path: "/assignments" },
   { icon: Camera, label: "Homework Scan", labelAr: "مسح الواجبات", path: "/homework" },
   { icon: PenTool, label: "Writing Lab", labelAr: "مختبر الكتابة", path: "/writing" },
@@ -29,6 +30,7 @@ const teacherNav = [
   { icon: BrainCircuit, label: "AI Facilitator", labelAr: "مساعد التعلّم", path: "/ai-facilitator" },
   { icon: Presentation, label: "Presentations", labelAr: "العروض التقديمية", path: "/presentations" },
   { icon: BookOpen, label: "Assignments", labelAr: "الواجبات", path: "/assignments" },
+  { icon: Volume2, label: "Pronunciation", labelAr: "تدريب النطق", path: "/pronunciation" },
   { icon: Users, label: "My Students", labelAr: "طلابي", path: "/students" },
   { icon: Users, label: "Class Management", labelAr: "إدارة الفصول", path: "/classes" },
   { icon: BarChart3, label: "Analytics", labelAr: "التحليلات", path: "/analytics" },

@@ -196,6 +196,119 @@ export type Database = {
         }
         Relationships: []
       }
+      pronunciation_submissions: {
+        Row: {
+          accuracy_score: number | null
+          ai_feedback: string | null
+          articulation_score: number | null
+          attempt_number: number
+          audio_url: string | null
+          clarity_score: number | null
+          id: string
+          is_best_attempt: boolean
+          mispronounced_parts: Json | null
+          overall_score: number | null
+          reviewed_at: string | null
+          stress_score: number | null
+          student_id: string
+          submitted_at: string
+          task_id: string
+          teacher_feedback: string | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          ai_feedback?: string | null
+          articulation_score?: number | null
+          attempt_number?: number
+          audio_url?: string | null
+          clarity_score?: number | null
+          id?: string
+          is_best_attempt?: boolean
+          mispronounced_parts?: Json | null
+          overall_score?: number | null
+          reviewed_at?: string | null
+          stress_score?: number | null
+          student_id: string
+          submitted_at?: string
+          task_id: string
+          teacher_feedback?: string | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          ai_feedback?: string | null
+          articulation_score?: number | null
+          attempt_number?: number
+          audio_url?: string | null
+          clarity_score?: number | null
+          id?: string
+          is_best_attempt?: boolean
+          mispronounced_parts?: Json | null
+          overall_score?: number | null
+          reviewed_at?: string | null
+          stress_score?: number | null
+          student_id?: string
+          submitted_at?: string
+          task_id?: string
+          teacher_feedback?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pronunciation_submissions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "pronunciation_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pronunciation_tasks: {
+        Row: {
+          assign_to: string
+          assigned_student_id: string | null
+          created_at: string
+          id: string
+          is_library_item: boolean
+          language: string
+          level: string
+          phonetic_hint: string | null
+          practice_mode: string
+          target_accuracy: number | null
+          teacher_id: string
+          text_content: string
+          updated_at: string
+        }
+        Insert: {
+          assign_to?: string
+          assigned_student_id?: string | null
+          created_at?: string
+          id?: string
+          is_library_item?: boolean
+          language?: string
+          level?: string
+          phonetic_hint?: string | null
+          practice_mode?: string
+          target_accuracy?: number | null
+          teacher_id: string
+          text_content: string
+          updated_at?: string
+        }
+        Update: {
+          assign_to?: string
+          assigned_student_id?: string | null
+          created_at?: string
+          id?: string
+          is_library_item?: boolean
+          language?: string
+          level?: string
+          phonetic_hint?: string | null
+          practice_mode?: string
+          target_accuracy?: number | null
+          teacher_id?: string
+          text_content?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quran_assignments: {
         Row: {
           assignment_type: string

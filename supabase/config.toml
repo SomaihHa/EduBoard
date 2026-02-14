@@ -1,1 +1,4 @@
 project_id = "kxmgqdorgsqamzhblssx"
+
+[functions.pronunciation-analyze]
+verify_jwt = false
