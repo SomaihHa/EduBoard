@@ -208,7 +208,11 @@ const AuthPage = () => {
               className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
             >
               {isLogin ? "Sign Up" : "Sign In"}
-            </button>
+           </button>
+          </p>
+
+          <p className="text-center text-white/20 mt-6 text-xs tracking-wide">
+            Powered by <span className="text-emerald-400/60 font-medium">Somaih Hameed</span>
           </p>
         </div>
       </div>
