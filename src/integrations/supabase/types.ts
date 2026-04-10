@@ -510,6 +510,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_invite_code: {
+        Args: { p_code: string }
+        Returns: {
+          class_name: string
+          expires_at: string
+          id: string
+          invite_code: string
+          is_active: boolean
+          max_uses: number
+          teacher_id: string
+          use_count: number
+        }[]
+      }
     }
     Enums: {
       app_role: "teacher" | "student"

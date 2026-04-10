@@ -122,12 +122,10 @@ export function useTeacherStudents() {
   const joinClass = async (code: string) => {
     if (!user) return { error: "Not logged in" };
 
-    const { data: invitation } = await supabase
-      .from("class_invitations")
-      .select("*")
-      .eq("invite_code", code.toUpperCase().trim())
-      .eq("is_active", true)
-      .single();
+    const { data: invitations } = await supabase
+      .rpc("validate_invite_code", { p_code: code });
+
+    const invitation = invitations?.[0] ?? null;
 
     if (!invitation) return { error: "Invalid or expired invite code" };
 
