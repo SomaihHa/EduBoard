@@ -53,7 +53,7 @@ EduBoard reflects my interest in combining education, research, technology, and 
 
 Add your published EduBoard link here:
 
-`YOUR_LIVE_PROJECT_LINK`
+https://eduboard.lovable.app
 
 ## Repository
 
