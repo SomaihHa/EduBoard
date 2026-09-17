@@ -51,8 +51,6 @@ EduBoard reflects my interest in combining education, research, technology, and 
 
 ## Live Demo
 
-Add your published EduBoard link here:
-
 https://eduboard.lovable.app
 
 ## Repository
