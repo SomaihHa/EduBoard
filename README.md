@@ -1,73 +1,79 @@
-# Welcome to your Lovable project
+# EduBoard
 
-## Project info
+EduBoard is an AI-powered educational platform designed to support students through intelligent learning tools in one place.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+The platform combines Quran recitation support, academic writing assistance, lecture-related tools, and AI-powered features to create a more interactive and personalized learning experience.
 
-## How can I edit this code?
+## Project Overview
 
-There are several ways of editing your application.
+EduBoard was created as a practical project to explore how artificial intelligence can be integrated into education.
 
-**Use Lovable**
+The main goal of the platform is to help students learn more effectively by combining educational content with AI-assisted tools.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Key Features
 
-Changes made via Lovable will be committed automatically to this repo.
+- AI-powered educational tools
+- Quran recitation support
+- Writing assistance
+- Lecture and learning tools
+- Student-friendly dashboard
+- User authentication
+- Responsive interface
+- Structured learning environment
 
-**Use your preferred IDE**
+## Technologies Used
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
 - React
-- shadcn-ui
-- Tailwind CSS
+- TypeScript
+- Vite
+- Supabase
+- Lovable
+- GitHub
+- AI-powered integrations
 
-## How can I deploy this project?
+## What I Learned
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Through developing EduBoard, I gained practical experience in:
 
-## Can I connect a custom domain to my Lovable project?
+- Building and structuring an AI-supported web application
+- Integrating educational features into a digital platform
+- Using Supabase for backend services and authentication
+- Managing project code through GitHub
+- Understanding frontend and backend integration
+- Applying AI tools to solve practical educational needs
+- Improving user experience through iterative development
 
-Yes, you can!
+## Project Motivation
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+My academic background is in linguistics and education, which encouraged me to explore how artificial intelligence can support learning and improve digital educational experiences.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+EduBoard reflects my interest in combining education, research, technology, and artificial intelligence in practical projects.
+
+## Live Demo
+
+Add your published EduBoard link here:
+
+`YOUR_LIVE_PROJECT_LINK`
+
+## Repository
+
+This repository contains the source code for the EduBoard project.
+
+## Future Development
+
+Future improvements may include:
+
+- More advanced AI learning assistance
+- Personalized student feedback
+- Enhanced Quran recitation analysis
+- Expanded writing support
+- Learning progress tracking
+- More interactive lecture tools
+- Improved analytics and personalization
+
+## Author
+
+**Somaih Hameed Almabadi**
+
+MA in Linguistics  
+Interested in Artificial Intelligence, Education Technology, Research, and Learning & Development
