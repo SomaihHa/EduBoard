@@ -53,6 +53,22 @@ EduBoard reflects my interest in combining education, research, technology, and 
 
 https://eduboard.lovable.app
 
+## My Contribution
+
+I developed the concept and structure of EduBoard and defined its main educational use cases.
+
+My contribution included:
+
+- Designing the overall platform concept and user experience
+- Planning the educational features and AI-related use cases
+- Using Lovable to build and refine the application
+- Integrating Supabase for authentication and backend functionality
+- Testing features and improving the project through multiple iterations
+- Reviewing security-related issues and project settings
+- Connecting the project to GitHub for version control and documentation
+
+This project helped me gain practical experience in combining education, artificial intelligence, and web development tools.
+
 ## Repository
 
 This repository contains the source code for the EduBoard project.
